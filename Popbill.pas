@@ -70,6 +70,7 @@ type
                 FToken     : TToken;
                 FIsTest    : bool;
                 FAuth      : TAuth;
+                FScope     : Array Of String;
                 procedure setIsTest(value : bool);
 
                 function getSession_Token(CorpNum : String) : String;
@@ -79,6 +80,7 @@ type
                 function httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String; overload;
         public
                 constructor Create(PartnerID : String; SecretKey : String);
+                procedure AddScope(Scope : String);
                 //ÆËºô °øÅë.
                 //ÆËºô ¿¬°á url.
                 function GetPopbillURL(CorpNum : String; UserID : String; TOGO : String) : String;
@@ -113,8 +115,15 @@ end;
 constructor TPopbillBaseService.Create(PartnerID : String; SecretKey : String);
 begin
        FAuth := TAuth.Create(PartnerID,SecretKey);
+       setLength(FScope,1);
+       FScope[0] := 'member';
 end;
 
+procedure TPopbillBaseService.AddScope(scope : String);
+begin
+        setLength(FScope,length(FScope)+1);
+        FScope[length(FScope)-1] := scope;
+end;
 
 procedure TPopbillBaseService.setIsTest(value : bool);
 begin
@@ -124,7 +133,6 @@ end;
 
 function TPopbillBaseService.getSession_Token(CorpNum : String) : String;
 var
-        scope : Array Of String;
         noneOrExpired : bool;
         Expiration : TDateTime;
 begin
@@ -137,12 +145,9 @@ begin
 
         if noneOrExpired then
         begin
-                setLength(scope,2);
-                scope[0] := 'member';
-                scope[1] := '110';
 
                 try
-                        FToken := FAuth.getToken(ServiceID_TEST,CorpNum,scope);//,'192.168.0.222');
+                        FToken := FAuth.getToken(ServiceID_TEST,CorpNum,FScope);//,'192.168.0.222');
                 except on le:ELinkhubException do
                         raise EPopbillException.Create(le.code,le.message);
                 end;
