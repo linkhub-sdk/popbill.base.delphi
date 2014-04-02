@@ -357,20 +357,20 @@ var
 begin
         requestJson := '{';
 
-        requestJson := requestJson + '"PartnerID":"'+JoinInfo.PartnerID+'",';
+        requestJson := requestJson + '"PartnerID":"'+EscapeString(JoinInfo.PartnerID)+'",';
 
-        requestJson := requestJson + '"CorpNum":"'+JoinInfo.CorpNum+'",';
-        requestJson := requestJson + '"CEOName":"'+JoinInfo.CEOName+'",';
-        requestJson := requestJson + '"CorpName":"'+JoinInfo.CorpName+'",';
-        requestJson := requestJson + '"Addr":"'+JoinInfo.Addr+'",';
-        requestJson := requestJson + '"ZipCode":"'+JoinInfo.ZipCode+'",';
-        requestJson := requestJson + '"BizType":"'+JoinInfo.BizType+'",';
-        requestJson := requestJson + '"BizClass":"'+JoinInfo.BizClass+'",';
-        requestJson := requestJson + '"ContactName":"'+JoinInfo.ContactName+'",';
-        requestJson := requestJson + '"ContactEmail":"'+JoinInfo.ContactEmail+'",';
-        requestJson := requestJson + '"ContactTEL":"'+JoinInfo.ContactTEL+'",';
-        requestJson := requestJson + '"ID":"'+JoinInfo.ID+'",';
-        requestJson := requestJson + '"PWD":"'+JoinInfo.PWD+'"';
+        requestJson := requestJson + '"CorpNum":"'+EscapeString(JoinInfo.CorpNum)+'",';
+        requestJson := requestJson + '"CEOName":"'+EscapeString(JoinInfo.CEOName)+'",';
+        requestJson := requestJson + '"CorpName":"'+EscapeString(JoinInfo.CorpName)+'",';
+        requestJson := requestJson + '"Addr":"'+EscapeString(JoinInfo.Addr)+'",';
+        requestJson := requestJson + '"ZipCode":"'+EscapeString(JoinInfo.ZipCode)+'",';
+        requestJson := requestJson + '"BizType":"'+EscapeString(JoinInfo.BizType)+'",';
+        requestJson := requestJson + '"BizClass":"'+EscapeString(JoinInfo.BizClass)+'",';
+        requestJson := requestJson + '"ContactName":"'+EscapeString(JoinInfo.ContactName)+'",';
+        requestJson := requestJson + '"ContactEmail":"'+EscapeString(JoinInfo.ContactEmail)+'",';
+        requestJson := requestJson + '"ContactTEL":"'+EscapeString(JoinInfo.ContactTEL)+'",';
+        requestJson := requestJson + '"ID":"'+EscapeString(JoinInfo.ID)+'",';
+        requestJson := requestJson + '"PWD":"'+EscapeString(JoinInfo.PWD)+'"';
 
         requestJson := requestJson + '}';
 
