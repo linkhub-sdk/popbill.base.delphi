@@ -278,10 +278,10 @@ begin
 
                         HTTP.Document.CopyFrom(files[i].Data, 0);
 
-                        s := CRLF;
+                        s := s + CRLF;
                 end;
                 //End Of Part
-                s := '--' + Bound + '--' + CRLF;
+                s := s + '--' + Bound + '--' + CRLF;
 
                 WriteStrToStream(HTTP.Document, s);
                 HTTP.MimeType := 'multipart/form-data; boundary=' + Bound;
@@ -312,81 +312,17 @@ end;
 
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String;
 var
-        HTTP: THTTPSend;
-        response : string;
-        sessiontoken : string;
-        Bound,s : WideString;
-        tmp : Array of Byte;
-        intTemp : Integer;
+        files : TFileList;
 begin
+        SetLength(files,1);
+        files[0] := TFile.Create;
+        files[0].FieldName := FieldName;
+        files[0].FileName := FileName;
+        files[0].Data := data;
 
-        if FIsTest then url := ServiceURL_TEST + url
-             else url := ServiceURL_REAL + url;
-
-        HTTP := THTTPSend.Create;
-        HTTP.Sock.SSLDoConnect;
-
-        if(CorpNum <> '') then
-        begin
-                sessiontoken := getSession_Token(CorpNum);
-                HTTP.Headers.Add('Authorization: Bearer ' + sessiontoken);
-        end;
-
-        try
-
-                HTTP.Headers.Add('x-lh-version: ' + APIVersion);
-
-                if UserID <> '' then
-                begin
-                        HTTP.Headers.Add('x-pb-userid: ' + UserID);
-                end;
-
-                Bound := IntToHex(Random(MaxInt), 8) + '_DELPHI_SDK';
-
-                // Start Of Part
-                s := '--' + Bound + CRLF;
-                s := s + 'content-disposition: form-data; name="' + FieldName + '";';
-                s := s + ' filename="' + FileName +'"' + CRLF;
-                s := s + 'Content-Type: Application/octet-stream' + CRLF + CRLF;
-
-                SetLength(tmp,Length(s)*3);
-                intTemp := UnicodeToUtf8(@tmp[0], Length(tmp),PWideChar(s),Length(s));
-                SetLength(tmp,intTemp-1);                                         
-
-                HTTP.Document.Write(tmp[0], length(tmp));
-
-                HTTP.Document.CopyFrom(Data, 0);
-
-                //this is a end of line.
-                s := CRLF + '--' + Bound + '--' + CRLF;
-
-                //End Of Part
-                WriteStrToStream(HTTP.Document, s);
-                HTTP.MimeType := 'multipart/form-data; boundary=' + Bound;
-                
-
-                if HTTP.HTTPMethod('POST', url) then
-                begin
-                        if HTTP.ResultCode <> 200 then
-                        begin
-                                response := StreamToString(HTTP.Document);
-                                raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
-                        end;
-                        result := StreamToString(HTTP.Document);
-
-                end
-                else
-                begin
-                    if HTTP.ResultCode <> 200 then
-                    begin
-                        raise EPopbillException.Create(-99999999,HTTP.ResultString);
-                    end;
-                end;
-
-        finally
-                HTTP.Free;
-        end;
+        result := httppost(url,CorpNum,UserID,files);
 end;
+
 function TPopbillBaseService.httpget(url : String; CorpNum : String; UserID : String) : String;
 var
         HTTP: THTTPSend;
