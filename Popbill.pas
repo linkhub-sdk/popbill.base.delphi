@@ -88,6 +88,7 @@ type
                 function httppost(url : String; CorpNum : String; UserID : String ; request : String; Action : String) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; files : TFileList) : String; overload;
+                function httppost(url : String; CorpNum : String; UserID : String ; form : String; files : TFileList) : String; overload;
         public
                 constructor Create(PartnerID : String; SecretKey : String);
                 procedure AddScope(Scope : String);
@@ -230,6 +231,11 @@ begin
         end;
 end;
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; files : TFileList) : String;
+begin
+        result := httppost(url,CorpNum,UserID,'',files);
+end;
+
+function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; form : String; files : TFileList) : String; 
 var
         HTTP: THTTPSend;
         response : string;
@@ -262,6 +268,14 @@ begin
 
                 Bound := IntToHex(Random(MaxInt), 8) + '_DELPHI_SDK';
 
+                if form <> '' then begin
+                        s := '--' + Bound + CRLF;
+                        s := s + 'content-disposition: form-data; name="form"' + CRLF;
+                        s := s + 'content-type: Application/json; charset=euc-kr' + CRLF + CRLF;
+                        s := s + form + CRLF;
+                        WriteStrToStream(HTTP.Document, s);
+                end;
+
                 for i:=0 to Length(files) -1 do begin
 
                         // Start Of Part
@@ -278,12 +292,12 @@ begin
 
                         HTTP.Document.CopyFrom(files[i].Data, 0);
 
-                        s := s + CRLF;
+                        WriteStrToStream(HTTP.Document, CRLF);
                 end;
-                //End Of Part
-                s := s + '--' + Bound + '--' + CRLF;
+                
+                //End Of MultiPart
+                WriteStrToStream(HTTP.Document, '--' + Bound + '--' + CRLF);
 
-                WriteStrToStream(HTTP.Document, s);
                 HTTP.MimeType := 'multipart/form-data; boundary=' + Bound;
                 
 
