@@ -32,10 +32,9 @@ uses
         Windows, Messages,TypInfo, SysUtils,synautil,synachar, Classes, HTTPSend , ssl_openssl,Linkhub;
 const
         ServiceID_REAL = 'POPBILL';
-        ServiceID_TEST = 'POPBILL_STAGE';
+        ServiceID_TEST = 'POPBILL_TEST';
         ServiceURL_REAL = 'https://popbill.linkhub.co.kr';
-        ServiceURL_TEST = 'https://dev-api.innopost.com';
-        //ServiceURL_TEST = 'https://popbill_test.linkhub.co.kr';
+        ServiceURL_TEST = 'https://popbill_test.linkhub.co.kr';
         APIVersion = '1.0';
         CR = #$0d;
         LF = #$0a;
@@ -138,7 +137,6 @@ end;
 
 procedure TPopbillBaseService.setIsTest(value : bool);
 begin
-        FAuth.IsTest := value;
         FIsTest := value;;
 end;
 
