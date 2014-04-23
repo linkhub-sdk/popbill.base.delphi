@@ -411,6 +411,8 @@ begin
         requestJson := requestJson + '"ContactName":"'+EscapeString(JoinInfo.ContactName)+'",';
         requestJson := requestJson + '"ContactEmail":"'+EscapeString(JoinInfo.ContactEmail)+'",';
         requestJson := requestJson + '"ContactTEL":"'+EscapeString(JoinInfo.ContactTEL)+'",';
+        requestJson := requestJson + '"ContactHP":"'+EscapeString(JoinInfo.ContactHP)+'",';
+        requestJson := requestJson + '"ContactFAX":"'+EscapeString(JoinInfo.ContactFAX)+'",';
         requestJson := requestJson + '"ID":"'+EscapeString(JoinInfo.ID)+'",';
         requestJson := requestJson + '"PWD":"'+EscapeString(JoinInfo.PWD)+'"';
 
