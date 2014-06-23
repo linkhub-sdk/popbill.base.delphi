@@ -47,7 +47,7 @@ type
 
         
         TJoinForm = Record
-                PartnerID       : string;
+                LinkID          : string;
                 CorpNum         : string;
                 CEOName         : string;
                 CorpName        : string;
@@ -89,7 +89,7 @@ type
                 function httppost(url : String; CorpNum : String; UserID : String ; files : TFileList) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; form : String; files : TFileList) : String; overload;
         public
-                constructor Create(PartnerID : String; SecretKey : String);
+                constructor Create(LinkID : String; SecretKey : String);
                 procedure AddScope(Scope : String);
                 //ÆËºô °øÅë.
                 //ÆËºô ¿¬°á url.
@@ -122,9 +122,9 @@ begin
         FCode := code;
 end;
 
-constructor TPopbillBaseService.Create(PartnerID : String; SecretKey : String);
+constructor TPopbillBaseService.Create(LinkID : String; SecretKey : String);
 begin
-       FAuth := TAuth.Create(PartnerID,SecretKey);
+       FAuth := TAuth.Create(LinkID,SecretKey);
        setLength(FScope,1);
        FScope[0] := 'member';
 end;
@@ -399,7 +399,7 @@ var
 begin
         requestJson := '{';
 
-        requestJson := requestJson + '"PartnerID":"'+EscapeString(JoinInfo.PartnerID)+'",';
+        requestJson := requestJson + '"LinkID":"'+EscapeString(JoinInfo.LinkID)+'",';
 
         requestJson := requestJson + '"CorpNum":"'+EscapeString(JoinInfo.CorpNum)+'",';
         requestJson := requestJson + '"CEOName":"'+EscapeString(JoinInfo.CEOName)+'",';
