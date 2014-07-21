@@ -100,6 +100,8 @@ type
                 function GetBalance(CorpNum : String) : Double;
                 //파트너 잔여포인트 확인.
                 function GetPartnerBalance(CorpNum : String) : Double;
+
+                function getServiceID() : String;
                 
         published
                 //TEST Mode. default is false.
@@ -140,6 +142,12 @@ begin
         FIsTest := value;;
 end;
 
+function TPopbillBaseService.getServiceID() : String;
+begin
+    if(FIsTest) then result := ServiceID_TEST
+    else result := ServiceID_REAL;
+end;
+
 function TPopbillBaseService.getSession_Token(CorpNum : String) : String;
 var
         noneOrExpired : bool;
@@ -156,7 +164,7 @@ begin
         begin
 
                 try
-                        FToken := FAuth.getToken(ServiceID_TEST,CorpNum,FScope);//,'192.168.0.222');
+                        FToken := FAuth.getToken(getServiceID(),CorpNum,FScope);//,'192.168.0.222');
                 except on le:ELinkhubException do
                         raise EPopbillException.Create(le.code,le.message);
                 end;
@@ -428,12 +436,12 @@ end;
 
 function TPopbillBaseService.GetBalance(CorpNum : String) : Double;
 begin
-        result := FAuth.getBalance(getSession_Token(CorpNum),ServiceID_TEST);
+        result := FAuth.getBalance(getSession_Token(CorpNum),getServiceID());
 end;
 
 function TPopbillBaseService.GetPartnerBalance(CorpNum : String) : Double;
 begin
-        result := FAuth.getPartnerBalance(getSession_Token(CorpNum),ServiceID_TEST);
+        result := FAuth.getPartnerBalance(getSession_Token(CorpNum),getServiceID());
 end;
 
 end.
