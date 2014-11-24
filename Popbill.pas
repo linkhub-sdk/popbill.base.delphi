@@ -96,6 +96,8 @@ type
                 function GetPopbillURL(CorpNum : String; UserID : String; TOGO : String) : String;
                 //연동회원 가입.
                 function JoinMember(JoinInfo : TJoinForm) : TResponse;
+                //가입여부 확인
+                function CheckIsMember(CorpNum : String; LinkID : String) : TResponse;
                 //회원 잔여포인트 확인.
                 function GetBalance(CorpNum : String) : Double;
                 //파트너 잔여포인트 확인.
@@ -432,7 +434,15 @@ begin
         result.message := getJSonString(responseJson,'message');
 
 end;
+function TPopbillBaseService.CheckIsMember(CorpNum : String; LinkID : String) : TResponse;
+var
+        responseJson : string;
+begin
+        responseJson := httpget('/Join?CorpNum=' + CorpNum + '&LID=' + LinkID,'','');
 
+        result.code := getJSonInteger(responseJson,'code');
+        result.message := getJSonString(responseJson,'message');
+end;
 
 function TPopbillBaseService.GetBalance(CorpNum : String) : Double;
 begin
