@@ -351,7 +351,6 @@ var
         response : string;
         sessiontoken : string;
 begin
-        sessiontoken := getSession_Token(CorpNum);
 
         if FIsTest then url := ServiceURL_TEST + url
              else url := ServiceURL_REAL + url;
@@ -359,10 +358,13 @@ begin
         HTTP := THTTPSend.Create;
         HTTP.Sock.SSLDoConnect;
 
-        try
-
-
+        if(CorpNum <> '') then
+        begin
+                sessiontoken := getSession_Token(CorpNum);
                 HTTP.Headers.Add('Authorization: Bearer ' + sessiontoken);
+        end;
+
+        try
                 HTTP.Headers.Add('x-lh-version: ' + APIVersion);
 
                 if UserID <> '' then
