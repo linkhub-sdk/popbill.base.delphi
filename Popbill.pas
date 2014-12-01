@@ -77,6 +77,7 @@ type
         protected
                 FToken     : TToken;
                 FIsTest    : bool;
+                FTokenCorpNum : String;
                 FAuth      : TAuth;
                 FScope     : Array Of String;
                 procedure setIsTest(value : bool);
@@ -160,6 +161,8 @@ begin
                 Expiration := UTCToDate( FToken.expiration);
                 noneOrExpired := expiration < now;
 
+                noneOrExpired := FTokenCorpNum <> CorpNum
+
         end;
 
         if noneOrExpired then
@@ -167,6 +170,7 @@ begin
 
                 try
                         FToken := FAuth.getToken(getServiceID(),CorpNum,FScope);//,'192.168.0.222');
+                        FTokenCorpNum := CorpNum;
                 except on le:ELinkhubException do
                         raise EPopbillException.Create(le.code,le.message);
                 end;
