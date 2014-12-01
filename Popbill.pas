@@ -158,11 +158,11 @@ var
 begin
         if FToken = nil then noneOrExpired := true
         else begin
-                Expiration := UTCToDate( FToken.expiration);
-                noneOrExpired := expiration < now;
-
-                noneOrExpired := FTokenCorpNum <> CorpNum
-
+                if FTokenCorpNum <> CorpNum then noneOrExpired := true
+                else begin
+                        Expiration := UTCToDate( FToken.expiration);
+                        noneOrExpired := expiration < now;
+                end;
         end;
 
         if noneOrExpired then
