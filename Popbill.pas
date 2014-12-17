@@ -30,6 +30,21 @@ interface
 
 uses
         Windows, Messages,TypInfo, SysUtils,synautil,synachar, Classes, HTTPSend , ssl_openssl,Linkhub;
+{$IFDEF VER240}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+{$IFDEF VER250}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+{$IFDEF VER260}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+{$IFDEF VER270}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+{$IFDEF VER280}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
 const
         ServiceID_REAL = 'POPBILL';
         ServiceID_TEST = 'POPBILL_TEST';
