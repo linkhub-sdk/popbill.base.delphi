@@ -253,7 +253,7 @@ var
         response : string;
         sessiontoken : string;
         Bound,s : WideString;
-        tmp : Array of Byte;
+        tmp : {$IFDEF COMPILER15_UP}TArray<Byte>{$ELSE}Array of Byte{$ENDIF};
         i,intTemp : Integer;
 begin
 
@@ -296,10 +296,13 @@ begin
                         s := s + ' filename="' + files[i].FileName +'"' + CRLF;
                         s := s + 'Content-Type: Application/octet-stream' + CRLF + CRLF;
 
+                        {$IFDEF COMPILER15_UP}
+                        tmp := TEncoding.UTF8.GetBytes(s);
+                        {$ELSE}
                         SetLength(tmp,Length(s)*3);
                         intTemp := UnicodeToUtf8(@tmp[0], Length(tmp),PWideChar(s),Length(s));
                         SetLength(tmp,intTemp-1);
-
+                        {$ENDIF}
                         HTTP.Document.Write(tmp[0], length(tmp));
 
                         HTTP.Document.CopyFrom(files[i].Data, 0);
