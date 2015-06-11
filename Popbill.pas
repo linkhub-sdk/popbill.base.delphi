@@ -11,12 +11,6 @@
 * Thanks for your interest. 
 *=================================================================================
 *)
-unit Popbill;
-
-interface
-
-uses
-        Windows, Messages,TypInfo, SysUtils, Classes ,ComObj,ActiveX,Linkhub;
 {$IFDEF VER240}
 {$DEFINE COMPILER15_UP}
 {$ENDIF}
@@ -35,6 +29,13 @@ uses
 {$IFDEF VER290}
 {$DEFINE COMPILER15_UP}
 {$ENDIF}
+unit Popbill;
+
+interface
+
+uses
+        Windows, Messages,TypInfo, SysUtils, Classes ,ComObj,ActiveX,{$IFDEF COMPILER15_UP}Variants{$ENDIF},Linkhub;
+
 const
         ServiceID_REAL = 'POPBILL';
         ServiceID_TEST = 'POPBILL_TEST';
