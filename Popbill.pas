@@ -4,22 +4,9 @@
 * RESTful web service request and parse json result. It uses Linkhub module
 * to accomplish authentication APIs.
 *
-* This module uses synapse library.( http://www.ararat.cz/synapse/doku.php/ )
-* It's full open source library, free to use include commercial application.
-* If you wish to donate that, visit their site.
-* So, before using this module, you need to install synapse by user self.
-* You can refer their site or detailed infomation about installation is available
-* from below our site. We appreciate your visiting.
-*
-* For strongly secured communications, this module uses SSL/TLS with OpenSSL.
-* So You need two dlls (libeay32.dll and ssleay32.dll) from OpenSSL. You can
-* get it from Fulgan. ( http://indy.fulgan.com/SSL/ ) We recommend i386_win32 version.
-* And also, dlls must be released with your executions. That's the drawback of this
-* module, but we acommplished higher security level against that.
-*
 * http://www.popbill.com
 * Author : Kim Seongjun (pallet027@gmail.com)
-* Written : 2014-03-22
+* Written : 2015-06-10
 
 * Thanks for your interest. 
 *=================================================================================
@@ -29,7 +16,7 @@ unit Popbill;
 interface
 
 uses
-        Windows, Messages,TypInfo, SysUtils,synautil,synachar, Classes, HTTPSend , ssl_openssl,Linkhub;
+        Windows, Messages,TypInfo, SysUtils, Classes ,ComObj,ActiveX,Linkhub;
 {$IFDEF VER240}
 {$DEFINE COMPILER15_UP}
 {$ENDIF}
@@ -43,6 +30,9 @@ uses
 {$DEFINE COMPILER15_UP}
 {$ENDIF}
 {$IFDEF VER280}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+{$IFDEF VER290}
 {$DEFINE COMPILER15_UP}
 {$ENDIF}
 const
@@ -135,6 +125,7 @@ type
                 property code : LongInt read FCode write FCode;
         end;
 
+        procedure WriteStrToStream(const Stream: TStream; Value: AnsiString);
 implementation
 constructor EPopbillException.Create(code : LongInt; Message : String);
 begin
@@ -184,7 +175,7 @@ begin
         begin
 
                 try
-                        FToken := FAuth.getToken(getServiceID(),CorpNum,FScope);//,'192.168.0.222');
+                        FToken := FAuth.getToken(getServiceID(),CorpNum,FScope);//,'192.168.10.222');
                         FTokenCorpNum := CorpNum;
                 except on le:ELinkhubException do
                         raise EPopbillException.Create(le.code,le.message);
@@ -201,7 +192,8 @@ end;
 
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; request : String; action:String) : String;
 var
-        HTTP: THTTPSend;
+        http : olevariant;
+        postdata : olevariant;
         response : string;
         sessiontoken : string;
      
@@ -210,148 +202,145 @@ begin
         if FIsTest then url := ServiceURL_TEST + url
              else url := ServiceURL_REAL + url;
 
-        HTTP := THTTPSend.Create;
-        HTTP.Sock.SSLDoConnect;
+        postdata := request;
+        http:=createoleobject('WinHttp.WinHttpRequest.5.1');
+        http.open('POST',url);
 
         if(CorpNum <> '') then
         begin
                 sessiontoken := getSession_Token(CorpNum);
-                HTTP.Headers.Add('Authorization: Bearer ' + sessiontoken);
+                HTTP.setRequestHeader('Authorization', 'Bearer ' + sessiontoken);
         end;
         if(action <> '') then
         begin
-                HTTP.Headers.Add('X-HTTP-Method-Override: '+action);
+                HTTP.setRequestHeader('X-HTTP-Method-Override',action);
         end;
         
-        try
-                HTTP.Headers.Add('x-lh-version: ' + APIVersion);
+        HTTP.setRequestHeader('x-lh-version',APIVersion);
 
-                if UserID <> '' then
-                begin
-                        HTTP.Headers.Add('x-pb-userid: ' + UserID);
-                end;
-
-                HTTP.MimeType := 'Application/json ; Charset=euc-kr';
-               
-                HTTP.Document.CopyFrom(TStringStream.Create(request),0);
-
-                if HTTP.HTTPMethod('POST', url) then
-                begin
-                        if HTTP.ResultCode <> 200 then
-                        begin
-                                response := StreamToString(HTTP.Document);
-                                raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
-                        end;
-                        result := StreamToString(HTTP.Document);
-
-                end
-                else
-                begin
-                    if HTTP.ResultCode <> 200 then
-                    begin
-                        raise EPopbillException.Create(-99999999,HTTP.ResultString);
-                    end;
-                end;
-
-        finally
-                HTTP.Free;
+        if UserID <> '' then
+        begin
+                HTTP.setRequestHeader('x-pb-userid',UserID);
         end;
+
+        HTTP.setRequestHeader('Content-Type','Application/json ;');
+
+        http.send(postdata);
+        http.WaitForResponse;
+
+
+        response := http.responsetext;
+
+        if HTTP.Status <> 200 then
+        begin
+                raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+        end;
+        result := response;
+
 end;
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; files : TFileList) : String;
 begin
         result := httppost(url,CorpNum,UserID,'',files);
 end;
 
-function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; form : String; files : TFileList) : String; 
+function MemoryStreamToOleVariant(const Strm: TMemoryStream): OleVariant;
+var 
+        Data: PByteArray;
+begin 
+        Result := VarArrayCreate ([0, Strm.Size - 1], varByte);
+        Data := VarArrayLock(Result);
+        try
+                Strm.Position := 0;
+                Strm.ReadBuffer(Data^, Strm.Size);
+        finally
+                VarArrayUnlock(Result);
+        end;
+end;
+
+function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; form : String; files : TFileList) : String;
 var
-        HTTP: THTTPSend;
+        HTTP: olevariant;
+        postdata : olevariant;
         response : string;
         sessiontoken : string;
         Bound,s : WideString;
         tmp : {$IFDEF COMPILER15_UP}TArray<Byte>{$ELSE}Array of Byte{$ENDIF};
         i,intTemp : Integer;
+        Stream: TMemoryStream;
 begin
+        Bound := '==POPBILL_DELPHI_SDK==';
+        Stream := TMemoryStream.Create;
 
         if FIsTest then url := ServiceURL_TEST + url
              else url := ServiceURL_REAL + url;
 
-        HTTP := THTTPSend.Create;
-        HTTP.Sock.SSLDoConnect;
+        postdata := form;
+        http:=createoleobject('WinHttp.WinHttpRequest.5.1');
+        http.open('POST',url);
 
         if(CorpNum <> '') then
         begin
                 sessiontoken := getSession_Token(CorpNum);
-                HTTP.Headers.Add('Authorization: Bearer ' + sessiontoken);
+                HTTP.setRequestHeader('Authorization', 'Bearer ' + sessiontoken);
         end;
 
-        try
+        HTTP.setRequestHeader('x-lh-version',APIVersion);
 
-                HTTP.Headers.Add('x-lh-version: ' + APIVersion);
-
-                if UserID <> '' then
-                begin
-                        HTTP.Headers.Add('x-pb-userid: ' + UserID);
-                end;
-
-                Bound := IntToHex(Random(MaxInt), 8) + '_DELPHI_SDK';
-
-                if form <> '' then begin
-                        s := '--' + Bound + CRLF;
-                        s := s + 'content-disposition: form-data; name="form"' + CRLF;
-                        s := s + 'content-type: Application/json; charset=euc-kr' + CRLF + CRLF;
-                        s := s + form + CRLF;
-                        WriteStrToStream(HTTP.Document, s);
-                end;
-
-                for i:=0 to Length(files) -1 do begin
-
-                        // Start Of Part
-                        s := '--' + Bound + CRLF;
-                        s := s + 'content-disposition: form-data; name="' + files[i].FieldName + '";';
-                        s := s + ' filename="' + files[i].FileName +'"' + CRLF;
-                        s := s + 'Content-Type: Application/octet-stream' + CRLF + CRLF;
-
-                        {$IFDEF COMPILER15_UP}
-                        tmp := TEncoding.UTF8.GetBytes(s);
-                        {$ELSE}
-                        SetLength(tmp,Length(s)*3);
-                        intTemp := UnicodeToUtf8(@tmp[0], Length(tmp),PWideChar(s),Length(s));
-                        SetLength(tmp,intTemp-1);
-                        {$ENDIF}
-                        HTTP.Document.Write(tmp[0], length(tmp));
-
-                        HTTP.Document.CopyFrom(files[i].Data, 0);
-
-                        WriteStrToStream(HTTP.Document, CRLF);
-                end;
-                
-                //End Of MultiPart
-                WriteStrToStream(HTTP.Document, '--' + Bound + '--' + CRLF);
-
-                HTTP.MimeType := 'multipart/form-data; boundary=' + Bound;
-                
-
-                if HTTP.HTTPMethod('POST', url) then
-                begin
-                        if HTTP.ResultCode <> 200 then
-                        begin
-                                response := StreamToString(HTTP.Document);
-                                raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
-                        end;
-                        result := StreamToString(HTTP.Document);
-
-                end
-                else
-                begin
-                    if HTTP.ResultCode <> 200 then
-                    begin
-                        raise EPopbillException.Create(-99999999,HTTP.ResultString);
-                    end;
-                end;
-
-        finally
-                HTTP.Free;
+        if UserID <> '' then
+        begin
+                HTTP.setRequestHeader('x-pb-userid',UserID);
         end;
+
+        if form <> '' then begin
+                s := '--' + Bound + CRLF;
+                s := s + 'content-disposition: form-data; name="form"' + CRLF;
+                s := s + 'content-type: Application/json; charset=euc-kr' + CRLF + CRLF;
+                s := s + form + CRLF;
+                WriteStrToStream(Stream, s);
+        end;                                                                                     
+
+        for i:=0 to Length(files) -1 do begin
+
+                // Start Of Part
+                s := '--' + Bound + CRLF;
+                s := s + 'content-disposition: form-data; name="' + files[i].FieldName + '";';
+                s := s + ' filename="' + files[i].FileName +'"' + CRLF;
+                s := s + 'Content-Type: Application/octet-stream' + CRLF + CRLF;
+
+                {$IFDEF COMPILER15_UP}
+                tmp := TEncoding.UTF8.GetBytes(s);
+                {$ELSE}
+                SetLength(tmp,Length(s)*3);
+                intTemp := UnicodeToUtf8(@tmp[0], Length(tmp),PWideChar(s),Length(s));
+                SetLength(tmp,intTemp-1);
+                {$ENDIF}
+                Stream.Write(tmp[0], length(tmp));
+
+                Stream.CopyFrom(files[i].Data, 0);
+
+                WriteStrToStream(Stream, CRLF);
+        end;
+
+        //End Of MultiPart
+        WriteStrToStream(Stream, '--' + Bound + '--' + CRLF);
+
+
+        HTTP.setRequestHeader('Content-Type','multipart/form-data; boundary=' + Bound);
+
+
+        http.send(MemoryStreamToOleVariant(Stream));
+        Stream.free;
+        http.WaitForResponse;
+
+        response := http.responsetext;
+
+        if HTTP.Status <> 200 then
+        begin
+                raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+        end;
+        result := response;
+
+
 end;
 
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String;
@@ -369,7 +358,7 @@ end;
 
 function TPopbillBaseService.httpget(url : String; CorpNum : String; UserID : String) : String;
 var
-        HTTP: THTTPSend;
+        HTTP: olevariant;
         response : string;
         sessiontoken : string;
 begin
@@ -377,44 +366,34 @@ begin
         if FIsTest then url := ServiceURL_TEST + url
              else url := ServiceURL_REAL + url;
 
-        HTTP := THTTPSend.Create;
-        HTTP.Sock.SSLDoConnect;
+        http:=createoleobject('WinHttp.WinHttpRequest.5.1');
+        http.open('GET',url);
 
         if(CorpNum <> '') then
         begin
                 sessiontoken := getSession_Token(CorpNum);
-                HTTP.Headers.Add('Authorization: Bearer ' + sessiontoken);
+                HTTP.setRequestHeader('Authorization','Bearer ' + sessiontoken);
         end;
 
-        try
-                HTTP.Headers.Add('x-lh-version: ' + APIVersion);
 
-                if UserID <> '' then
-                begin
-                        HTTP.Headers.Add('x-pb-userid: ' + UserID);
-                end;
+        HTTP.setRequestHeader('x-lh-version', APIVersion);
 
-                if HTTP.HTTPMethod('GET', url) then
-                begin
-                        if HTTP.ResultCode <> 200 then
-                        begin
-                                response := StreamToString(HTTP.Document);
-                                raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
-                        end;
-                        result := StreamToString(HTTP.Document);
-
-                end
-                else
-                begin
-                    if HTTP.ResultCode <> 200 then
-                    begin
-                        raise EPopbillException.Create(-99999999,HTTP.ResultString);
-                    end;
-                end;
-
-        finally
-                HTTP.Free;
+        if UserID <> '' then
+        begin
+                HTTP.setRequestHeader('x-pb-userid',UserID);
         end;
+
+        http.send;
+        http.WaitForResponse;
+
+        response := http.responsetext;
+
+        if HTTP.status <> 200 then
+        begin
+                raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+        end;
+        result := response;
+
 end;
 
 
@@ -476,6 +455,20 @@ end;
 function TPopbillBaseService.GetPartnerBalance(CorpNum : String) : Double;
 begin
         result := FAuth.getPartnerBalance(getSession_Token(CorpNum),getServiceID());
+end;
+
+procedure WriteStrToStream(const Stream: TStream; Value: AnsiString);
+{$IFDEF CIL}
+var
+  buf: Array of Byte;
+{$ENDIF}
+begin
+{$IFDEF CIL}
+  buf := BytesOf(Value);
+  Stream.Write(buf,length(Value));
+{$ELSE}
+  Stream.Write(PAnsiChar(Value)^, Length(Value));
+{$ENDIF}
 end;
 
 end.
