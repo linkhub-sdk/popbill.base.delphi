@@ -8,9 +8,12 @@
 * Author : Kim Seongjun (pallet027@gmail.com)
 * Written : 2015-06-10
 
-* Thanks for your interest. 
+* Thanks for your interest.
 *=================================================================================
 *)
+{$IFDEF VER130}
+{$DEFINE D5}
+{$ENDIF}
 {$IFDEF VER240}
 {$DEFINE COMPILER15_UP}
 {$ENDIF}
@@ -34,7 +37,7 @@ unit Popbill;
 interface
 
 uses
-        Windows, Messages,TypInfo, SysUtils, Classes ,ComObj,ActiveX,{$IFDEF COMPILER15_UP}Variants{$ENDIF},Linkhub;
+        Windows, Messages,TypInfo, SysUtils, Classes ,ComObj,ActiveX,{$IFNDEF D5}Variants,{$ENDIF}Linkhub;
 
 const
         ServiceID_REAL = 'POPBILL';
@@ -98,16 +101,16 @@ type
         public
                 constructor Create(LinkID : String; SecretKey : String);
                 procedure AddScope(Scope : String);
-                //팝빌 공통.
-                //팝빌 연결 url.
+                //?? ??.
+                //?? ?? url.
                 function GetPopbillURL(CorpNum : String; UserID : String; TOGO : String) : String;
-                //연동회원 가입.
+                //???? ??.
                 function JoinMember(JoinInfo : TJoinForm) : TResponse;
-                //가입여부 확인
+                //???? ??
                 function CheckIsMember(CorpNum : String; LinkID : String) : TResponse;
-                //회원 잔여포인트 확인.
+                //?? ????? ??.
                 function GetBalance(CorpNum : String) : Double;
-                //파트너 잔여포인트 확인.
+                //??? ????? ??.
                 function GetPartnerBalance(CorpNum : String) : Double;
 
                 function getServiceID() : String;
