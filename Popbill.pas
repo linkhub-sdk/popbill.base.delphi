@@ -73,6 +73,18 @@ type
                 ContactEmail    : string;
         end;
 
+        TJoinContact = Record
+                id              : string;
+                pwd             : string;
+                personName      : string;
+                tel             : string;
+                hp              : string;
+                fax             : string;
+                email           : string;
+                searchAllAllowYN : Boolean;
+                mgrYN           : Boolean;
+        end;
+
         TFile = class
         public
                 FieldName       : string;
@@ -82,7 +94,36 @@ type
 
         TFileList = Array Of TFile;
 
+        TContactInfo = class
+        public
+                id              : string;
+                email           : string;
+                hp              : string;
+                personName      : string;
+                searchAllAllowYN : Boolean;
+                tel             : string;
+                fax             : string;
+                mgrYN           : Boolean;
+                regDT           : string;
+        end;
+        TContactInfoList = Array Of TContactInfo;
+
+        TCorpInfo = class
+        public
+                CeoName         : string;
+                CorpName        : string;
+                Addr            : string;
+                BizType         : string;
+                BizClass        : string;
+        end;
+
         TPopbillBaseService = class
+        private
+                function jsonToTCorpInfo(json : String) : TCorpInfo;
+                function jsonToTContactInfo(json : String) : TContactInfo;
+                function TCorpInfoTojson(CorpInfo : TCorpInfo) : String;
+                function TContactToJson(Contact : TContactInfo) : String;
+                
         protected
                 FToken     : TToken;
                 FIsTest    : bool;
@@ -98,23 +139,37 @@ type
                 function httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; files : TFileList) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; form : String; files : TFileList) : String; overload;
+
         public
                 constructor Create(LinkID : String; SecretKey : String);
                 procedure AddScope(Scope : String);
-                //?? ??.
-                //?? ?? url.
+
+                //팝빌 팝업 url.
                 function GetPopbillURL(CorpNum : String; UserID : String; TOGO : String) : String;
-                //???? ??.
+                //연동회원 가입.
                 function JoinMember(JoinInfo : TJoinForm) : TResponse;
-                //???? ??
+                //가입여부 확인
                 function CheckIsMember(CorpNum : String; LinkID : String) : TResponse;
-                //?? ????? ??.
+                //잔여 포인트 조회.
                 function GetBalance(CorpNum : String) : Double;
-                //??? ????? ??.
+                //파트너 잔여포인트 조회.
                 function GetPartnerBalance(CorpNum : String) : Double;
 
                 function getServiceID() : String;
                 
+                //연동회원 아이디 중복 확인
+                function CheckID(ID : String) : TResponse;
+                // 담당자 목록 조회.
+                function ListContact(CorpNum : String; UserID : string) : TContactInfoList;
+                // 담당자 정보 수정
+                function UpdateContact(CorpNum : String; CorpInfo : TContactInfo; UserID : String) : TResponse;
+                // 담당자 추가
+                function RegistContact(CorpNum : String; JoinInfo : TJoinContact; UserID : String) : TResponse;
+                // 회사정보 확인
+                function GetCorpInfo(CorpNum : String; UserID : String) : TCorpInfo;
+                //회사정보 수정
+                function UpdateCorpInfo(CorpNum : String; CorpInfo : TCorpInfo; UserID : String) : TResponse;
+
         published
                 //TEST Mode. default is false.
                 property IsTest : bool read FIsTest write setIsTest;
@@ -155,6 +210,7 @@ begin
         FIsTest := value;;
 end;
 
+
 function TPopbillBaseService.getServiceID() : String;
 begin
     if(FIsTest) then result := ServiceID_TEST
@@ -187,7 +243,6 @@ begin
         end;
         result := FToken.session_token;
 end;
-
 
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; request : String) : String;
 begin
@@ -346,7 +401,7 @@ begin
 
 
 end;
-
+                                
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String;
 var
         files : TFileList;
@@ -400,6 +455,139 @@ begin
 
 end;
 
+function TPopbillBaseService.CheckID(ID : String) : TResponse;
+var
+        responseJson : String;
+begin
+        responseJson := httpget('/IDCheck?ID=' + ID, '','');
+
+        result.code := getJSonInteger(responseJson,'code');
+        result.message := getJSonString(responseJson,'message');
+end;
+
+function TPopbillBaseService.GetCorpInfo(CorpNum : String; UserID: String) : TCorpInfo;
+var
+        responseJson : string;
+begin
+        responseJson := httpget('/CorpInfo', CorpNum, UserID);
+
+        result := jsonToTCorpInfo(responseJson);
+
+end;
+
+function TPopbillBaseService.jsonToTCorpInfo(json : String) : TCorpInfo;
+begin
+        result := TCorpInfo.Create;
+
+        result.CeoName           := getJSonString(json,'ceoname');
+        result.CorpName          := getJSonString(json,'corpName');
+        result.Addr              := getJSonString(json,'addr');
+        result.BizType           := getJSonString(json,'bizType');
+        result.BizClass          := getJSonString(json,'bizClass');
+end;
+
+function TPopbillBaseService.UpdateContact(CorpNum : String; CorpInfo :TContactInfo; UserID : String) : TResponse;
+var
+        requestJson : string;
+        responseJson : string;
+begin
+
+        requestJson := TContactTojson(CorpInfo);
+
+        responseJson := httppost('/IDs',CorpNum,UserID,requestJson);
+
+        result.code := getJSonInteger(responseJson,'code');
+        result.message := getJSonString(responseJson,'message');
+end;
+
+
+
+function TPopbillBaseService.TContactToJson(Contact : TContactInfo) : String;
+var
+        requestJson : string;
+begin
+        requestJson := '{';
+        
+        if Contact.searchAllAllowYN then
+        requestJson := requestJson + '"searchAllAllowYN":true,';
+
+        if Contact.mgrYN then
+        requestJson := requestJson + '"mgrYN":true,';
+        
+        requestJson := requestJson + '"personName":"'+ EscapeString(Contact.personName) +'",';
+        requestJson := requestJson + '"tel":"'+ EscapeString(Contact.tel) +'",';
+        requestJson := requestJson + '"hp":"'+ EscapeString(Contact.hp) +'",';
+        requestJson := requestJson + '"email":"'+ EscapeString(Contact.email) +'",';
+        requestJson := requestJson + '"fax":"'+ EscapeString(Contact.fax) +'"';
+        requestJson := requestJson + '}';
+        result := requestJson;
+end;
+
+function TPopbillBaseService.UpdateCorpInfo(CorpNum : String; CorpInfo : TCorpInfo; UserID : String) : TResponse;
+var
+        requestJson : string;
+        responseJson : string;
+begin
+        requestJson := TCorpInfoToJson(CorpInfo);
+
+        responseJson := httppost('/CorpInfo',CorpNum,UserID,requestJson);
+
+        result.code := getJSonInteger(responseJson,'code');
+        result.message := getJSonString(responseJson,'message');
+end;
+
+function TPopbillBaseService.TCorpInfoToJson(CorpInfo : TCorpInfo) : String;
+var
+        requestJson : string;
+begin
+        requestJson := '{';
+        requestJson := requestJson + '"ceoname":"'+ EscapeString(CorpInfo.ceoname) +'",';
+        requestJson := requestJson + '"corpName":"'+ EscapeString(CorpInfo.corpName) +'",';
+        requestJson := requestJson + '"addr":"'+ EscapeString(CorpInfo.addr) +'",';
+        requestJson := requestJson + '"bizType":"'+ EscapeString(CorpInfo.bizType) +'",';
+        requestJson := requestJson + '"bizClass":"'+ EscapeString(CorpInfo.bizClass)+'"';
+        requestJson := requestJson + '}';
+        result := requestJson;
+end;
+
+function TPopbillBaseService.ListContact(CorpNum : String; UserID : String) : TContactInfoList;
+var
+        responseJson : string;
+        jSons : ArrayOfString;
+        i : Integer;
+begin
+        responseJson := httpget('/IDs',CorpNum, UserID);
+
+        try
+                jSons := ParseJsonList(responseJson);
+                SetLength(result,Length(jSons));
+
+                for i := 0 to Length(jSons)-1 do
+                begin
+                        result[i] := jsonToTContactInfo(jSons[i]);
+                end;
+
+        except on E:Exception do
+                raise EPopbillException.Create(-99999999,'결과처리 실패.[Malformed Json]');
+        end;
+end;
+
+function TPopbillBaseService.jsonToTContactInfo(json : String) : TContactInfo;
+begin
+        result := TContactInfo.Create;
+
+        result.id := getJSonString(json,'id');
+        result.email := getJSonString(json,'email');
+        result.hp := getJSonString(json,'hp');
+        result.personName := getJSonString(json,'personName');
+        result.searchAllAllowYN := getJSonBoolean(json,'searchAllAllowYN');
+        result.tel := getJSonString(json,'tel');
+        result.fax := getJSonString(json,'fax');
+        result.mgrYN := getJSonBoolean(json,'mgrYN');
+        result.regDT := getJSonString(json,'regDT');
+end;
+
+
 
 function TPopbillBaseService.getPopbillURL(CorpNum : String; UserID : String; TOGO : String) : String;
 var
@@ -407,6 +595,35 @@ var
 begin
         responseJson := httpget('/?TG=' + TOGO ,CorpNum,UserID);
         result := getJSonString(responseJson,'url');
+end;
+
+function TPopbillBaseService.RegistContact(CorpNum : String; JoinInfo : TJoinContact; UserID : String) : TResponse;
+var
+        requestJson : string;
+        responseJson : string;
+begin
+        requestJson := '{';
+
+        if JoinInfo.searchAllAllowYN then
+        requestJson := requestJson + '"searchAllAllowYN":true,';
+
+        if JoinInfo.mgrYN then
+        requestJson := requestJson + '"mgrYN":true,';
+
+        requestJson := requestJson + '"id":"'+EscapeString(JoinInfo.id)+'",';
+        requestJson := requestJson + '"pwd":"'+EscapeString(JoinInfo.pwd)+'",';
+        requestJson := requestJson + '"personName":"'+EscapeString(JoinInfo.personName)+'",';
+        requestJson := requestJson + '"tel":"'+EscapeString(JoinInfo.tel)+'",';
+        requestJson := requestJson + '"hp":"'+EscapeString(JoinInfo.hp)+'",';
+        requestJson := requestJson + '"fax":"'+EscapeString(JoinInfo.fax)+'",';
+        requestJson := requestJson + '"email":"'+EscapeString(JoinInfo.email)+'"';
+        requestJson := requestJson + '}';
+
+        responseJson := httppost('/IDs/New',CorpNum,UserID,requestJson);
+
+        result.code := getJSonInteger(responseJson,'code');
+        result.message := getJSonString(responseJson,'message');
+
 end;
 
 function TPopbillBaseService.JoinMember(JoinInfo : TJoinForm) : TResponse;
@@ -450,6 +667,7 @@ begin
         result.code := getJSonInteger(responseJson,'code');
         result.message := getJSonString(responseJson,'message');
 end;
+
 
 function TPopbillBaseService.GetBalance(CorpNum : String) : Double;
 begin
