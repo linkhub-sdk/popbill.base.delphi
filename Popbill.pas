@@ -262,7 +262,7 @@ begin
              else url := ServiceURL_REAL + url;
 
         postdata := request;
-        http:=createoleobject('WinHttp.WinHttpRequest.5.1');
+        http:=createoleobject('MSXML2.XMLHTTP.6.0');
         http.open('POST',url);
 
         if(CorpNum <> '') then
@@ -275,6 +275,7 @@ begin
                 HTTP.setRequestHeader('X-HTTP-Method-Override',action);
         end;
         
+        http.setRequestHeader('Accept-Encoding','gzip,deflate');
         HTTP.setRequestHeader('x-lh-version',APIVersion);
 
         if UserID <> '' then
@@ -285,8 +286,6 @@ begin
         HTTP.setRequestHeader('Content-Type','Application/json ;');
 
         http.send(postdata);
-        http.WaitForResponse;
-
 
         response := http.responsetext;
 
@@ -334,7 +333,7 @@ begin
              else url := ServiceURL_REAL + url;
 
         postdata := form;
-        http:=createoleobject('WinHttp.WinHttpRequest.5.1');
+        http:=createoleobject('MSXML2.XMLHTTP.6.0');
         http.open('POST',url);
 
         if(CorpNum <> '') then
@@ -344,7 +343,8 @@ begin
         end;
 
         HTTP.setRequestHeader('x-lh-version',APIVersion);
-
+        http.setRequestHeader('Accept-Encoding','gzip,deflate');
+        
         if UserID <> '' then
         begin
                 HTTP.setRequestHeader('x-pb-userid',UserID);
@@ -389,8 +389,7 @@ begin
 
         http.send(MemoryStreamToOleVariant(Stream));
         Stream.free;
-        http.WaitForResponse;
-
+        
         response := http.responsetext;
 
         if HTTP.Status <> 200 then
@@ -425,7 +424,7 @@ begin
         if FIsTest then url := ServiceURL_TEST + url
              else url := ServiceURL_REAL + url;
 
-        http:=createoleobject('WinHttp.WinHttpRequest.5.1');
+        http:=createoleobject('MSXML2.XMLHTTP.6.0');
         http.open('GET',url);
 
         if(CorpNum <> '') then
@@ -436,6 +435,7 @@ begin
 
 
         HTTP.setRequestHeader('x-lh-version', APIVersion);
+        http.setRequestHeader('Accept-Encoding','gzip,deflate');
 
         if UserID <> '' then
         begin
@@ -443,7 +443,6 @@ begin
         end;
 
         http.send;
-        http.WaitForResponse;
 
         response := http.responsetext;
 
