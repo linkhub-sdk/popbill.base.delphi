@@ -226,8 +226,8 @@ begin
         else begin
                 if FTokenCorpNum <> CorpNum then noneOrExpired := true
                 else begin
-                        Expiration := UTCToDate( FToken.expiration);
-                        noneOrExpired := expiration < now;
+                        Expiration := UTCToDate(FToken.expiration);
+                        noneOrExpired := expiration < UTCToDate(FAuth.getTime());
                 end;
         end;
 
