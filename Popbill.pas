@@ -32,6 +32,10 @@
 {$IFDEF VER290}
 {$DEFINE COMPILER15_UP}
 {$ENDIF}
+{$IFDEF VER300}
+{$DEFINE COMPILER15_UP}
+{$ENDIF}
+
 unit Popbill;
 
 interface
