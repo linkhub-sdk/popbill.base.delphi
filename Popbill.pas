@@ -131,10 +131,12 @@ type
         protected
                 FToken     : TToken;
                 FIsTest    : bool;
+                FIsThrowException : bool;
                 FTokenCorpNum : String;
                 FAuth      : TAuth;
                 FScope     : Array Of String;
                 procedure setIsTest(value : bool);
+                procedure setIsThrowException(value : bool);
 
                 function getSession_Token(CorpNum : String) : String;
                 function httpget(url : String; CorpNum : String; UserID : String) : String;
@@ -177,6 +179,7 @@ type
         published
                 //TEST Mode. default is false.
                 property IsTest : bool read FIsTest write setIsTest;
+                property IsThrowException : bool read FIsThrowException write setIsThrowException;
         end;
 
         EPopbillException  = class(Exception)
@@ -189,6 +192,7 @@ type
         end;
 
         procedure WriteStrToStream(const Stream: TStream; Value: AnsiString);
+
 implementation
 constructor EPopbillException.Create(code : LongInt; Message : String);
 begin
@@ -198,6 +202,8 @@ end;
 
 constructor TPopbillBaseService.Create(LinkID : String; SecretKey : String);
 begin
+       FIstest := false; //기본값.
+       FIsThrowException := true; //기본값.
        FAuth := TAuth.Create(LinkID,SecretKey);
        setLength(FScope,1);
        FScope[0] := 'member';
@@ -211,7 +217,12 @@ end;
 
 procedure TPopbillBaseService.setIsTest(value : bool);
 begin
-        FIsTest := value;;
+        FIsTest := value;
+end;
+
+procedure TPopbillBaseService.setIsThrowException(value : bool);
+begin
+        FIsThrowException := value;
 end;
 
 
@@ -462,10 +473,22 @@ function TPopbillBaseService.CheckID(ID : String) : TResponse;
 var
         responseJson : String;
 begin
-        responseJson := httpget('/IDCheck?ID=' + ID, '','');
+        try
+                responseJson := httpget('/IDCheck?ID=' + ID, '','');
 
-        result.code := getJSonInteger(responseJson,'code');
-        result.message := getJSonString(responseJson,'message');
+                result.code := getJSonInteger(responseJson,'code');
+                result.message := getJSonString(responseJson,'message');
+        except
+                on le : EPopbillException do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(le.code,le.Message);
+                        end;
+
+                        result.code := le.code;
+                        result.message := le.Message;
+                end;
+        end;
 end;
 
 function TPopbillBaseService.GetCorpInfo(CorpNum : String; UserID: String) : TCorpInfo;
@@ -494,13 +517,24 @@ var
         requestJson : string;
         responseJson : string;
 begin
+        try
+                requestJson := TContactTojson(CorpInfo);
 
-        requestJson := TContactTojson(CorpInfo);
+                responseJson := httppost('/IDs',CorpNum,UserID,requestJson);
 
-        responseJson := httppost('/IDs',CorpNum,UserID,requestJson);
-
-        result.code := getJSonInteger(responseJson,'code');
-        result.message := getJSonString(responseJson,'message');
+                result.code := getJSonInteger(responseJson,'code');
+                result.message := getJSonString(responseJson,'message');
+        except
+                on le : EPopbillException do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(le.code,le.Message);
+                        end;
+                        
+                        result.code := le.code;
+                        result.message := le.Message;
+                end;
+        end;
 end;
 
 
@@ -531,12 +565,26 @@ var
         requestJson : string;
         responseJson : string;
 begin
-        requestJson := TCorpInfoToJson(CorpInfo);
+        try
+                requestJson := TCorpInfoToJson(CorpInfo);
 
-        responseJson := httppost('/CorpInfo',CorpNum,UserID,requestJson);
+                responseJson := httppost('/CorpInfo',CorpNum,UserID,requestJson);
 
-        result.code := getJSonInteger(responseJson,'code');
-        result.message := getJSonString(responseJson,'message');
+                result.code := getJSonInteger(responseJson,'code');
+                result.message := getJSonString(responseJson,'message');
+        except
+                on le : EPopbillException do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(le.code,le.Message);
+                        end;
+                        
+                        result.code := le.code;
+                        result.message := le.Message;
+                end;
+        end;
+
+
 end;
 
 function TPopbillBaseService.TCorpInfoToJson(CorpInfo : TCorpInfo) : String;
@@ -605,27 +653,39 @@ var
         requestJson : string;
         responseJson : string;
 begin
-        requestJson := '{';
+        try
+                requestJson := '{';
 
-        if JoinInfo.searchAllAllowYN then
-        requestJson := requestJson + '"searchAllAllowYN":true,';
+                if JoinInfo.searchAllAllowYN then
+                requestJson := requestJson + '"searchAllAllowYN":true,';
 
-        if JoinInfo.mgrYN then
-        requestJson := requestJson + '"mgrYN":true,';
+                if JoinInfo.mgrYN then
+                requestJson := requestJson + '"mgrYN":true,';
 
-        requestJson := requestJson + '"id":"'+EscapeString(JoinInfo.id)+'",';
-        requestJson := requestJson + '"pwd":"'+EscapeString(JoinInfo.pwd)+'",';
-        requestJson := requestJson + '"personName":"'+EscapeString(JoinInfo.personName)+'",';
-        requestJson := requestJson + '"tel":"'+EscapeString(JoinInfo.tel)+'",';
-        requestJson := requestJson + '"hp":"'+EscapeString(JoinInfo.hp)+'",';
-        requestJson := requestJson + '"fax":"'+EscapeString(JoinInfo.fax)+'",';
-        requestJson := requestJson + '"email":"'+EscapeString(JoinInfo.email)+'"';
-        requestJson := requestJson + '}';
+                requestJson := requestJson + '"id":"'+EscapeString(JoinInfo.id)+'",';
+                requestJson := requestJson + '"pwd":"'+EscapeString(JoinInfo.pwd)+'",';
+                requestJson := requestJson + '"personName":"'+EscapeString(JoinInfo.personName)+'",';
+                requestJson := requestJson + '"tel":"'+EscapeString(JoinInfo.tel)+'",';
+                requestJson := requestJson + '"hp":"'+EscapeString(JoinInfo.hp)+'",';
+                requestJson := requestJson + '"fax":"'+EscapeString(JoinInfo.fax)+'",';
+                requestJson := requestJson + '"email":"'+EscapeString(JoinInfo.email)+'"';
+                requestJson := requestJson + '}';
 
-        responseJson := httppost('/IDs/New',CorpNum,UserID,requestJson);
+                responseJson := httppost('/IDs/New',CorpNum,UserID,requestJson);
 
-        result.code := getJSonInteger(responseJson,'code');
-        result.message := getJSonString(responseJson,'message');
+                result.code := getJSonInteger(responseJson,'code');
+                result.message := getJSonString(responseJson,'message');
+        except
+                on le : EPopbillException do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(le.code,le.Message);
+                        end;
+                        
+                        result.code := le.code;
+                        result.message := le.Message;
+                end;
+        end;
 
 end;
 
@@ -634,41 +694,64 @@ var
         requestJson : string;
         responseJson : string;
 begin
-        requestJson := '{';
+        try
+                requestJson := '{';
+                requestJson := requestJson + '"LinkID":"'+EscapeString(JoinInfo.LinkID)+'",';
 
-        requestJson := requestJson + '"LinkID":"'+EscapeString(JoinInfo.LinkID)+'",';
+                requestJson := requestJson + '"CorpNum":"'+EscapeString(JoinInfo.CorpNum)+'",';
+                requestJson := requestJson + '"CEOName":"'+EscapeString(JoinInfo.CEOName)+'",';
+                requestJson := requestJson + '"CorpName":"'+EscapeString(JoinInfo.CorpName)+'",';
+                requestJson := requestJson + '"Addr":"'+EscapeString(JoinInfo.Addr)+'",';
+                requestJson := requestJson + '"ZipCode":"'+EscapeString(JoinInfo.ZipCode)+'",';
+                requestJson := requestJson + '"BizType":"'+EscapeString(JoinInfo.BizType)+'",';
+                requestJson := requestJson + '"BizClass":"'+EscapeString(JoinInfo.BizClass)+'",';
+                requestJson := requestJson + '"ContactName":"'+EscapeString(JoinInfo.ContactName)+'",';
+                requestJson := requestJson + '"ContactEmail":"'+EscapeString(JoinInfo.ContactEmail)+'",';
+                requestJson := requestJson + '"ContactTEL":"'+EscapeString(JoinInfo.ContactTEL)+'",';
+                requestJson := requestJson + '"ContactHP":"'+EscapeString(JoinInfo.ContactHP)+'",';
+                requestJson := requestJson + '"ContactFAX":"'+EscapeString(JoinInfo.ContactFAX)+'",';
+                requestJson := requestJson + '"ID":"'+EscapeString(JoinInfo.ID)+'",';
+                requestJson := requestJson + '"PWD":"'+EscapeString(JoinInfo.PWD)+'"';
 
-        requestJson := requestJson + '"CorpNum":"'+EscapeString(JoinInfo.CorpNum)+'",';
-        requestJson := requestJson + '"CEOName":"'+EscapeString(JoinInfo.CEOName)+'",';
-        requestJson := requestJson + '"CorpName":"'+EscapeString(JoinInfo.CorpName)+'",';
-        requestJson := requestJson + '"Addr":"'+EscapeString(JoinInfo.Addr)+'",';
-        requestJson := requestJson + '"ZipCode":"'+EscapeString(JoinInfo.ZipCode)+'",';
-        requestJson := requestJson + '"BizType":"'+EscapeString(JoinInfo.BizType)+'",';
-        requestJson := requestJson + '"BizClass":"'+EscapeString(JoinInfo.BizClass)+'",';
-        requestJson := requestJson + '"ContactName":"'+EscapeString(JoinInfo.ContactName)+'",';
-        requestJson := requestJson + '"ContactEmail":"'+EscapeString(JoinInfo.ContactEmail)+'",';
-        requestJson := requestJson + '"ContactTEL":"'+EscapeString(JoinInfo.ContactTEL)+'",';
-        requestJson := requestJson + '"ContactHP":"'+EscapeString(JoinInfo.ContactHP)+'",';
-        requestJson := requestJson + '"ContactFAX":"'+EscapeString(JoinInfo.ContactFAX)+'",';
-        requestJson := requestJson + '"ID":"'+EscapeString(JoinInfo.ID)+'",';
-        requestJson := requestJson + '"PWD":"'+EscapeString(JoinInfo.PWD)+'"';
+                requestJson := requestJson + '}';
 
-        requestJson := requestJson + '}';
+                responseJson := httppost('/Join','','',requestJson);
 
-        responseJson := httppost('/Join','','',requestJson);
-
-        result.code := getJSonInteger(responseJson,'code');
-        result.message := getJSonString(responseJson,'message');
+                result.code := getJSonInteger(responseJson,'code');
+                result.message := getJSonString(responseJson,'message');
+        except
+                on le : EPopbillException do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(le.code,le.Message);
+                        end;
+                        
+                        result.code := le.code;
+                        result.message := le.Message;
+                end;
+        end;
 
 end;
 function TPopbillBaseService.CheckIsMember(CorpNum : String; LinkID : String) : TResponse;
 var
         responseJson : string;
 begin
-        responseJson := httpget('/Join?CorpNum=' + CorpNum + '&LID=' + LinkID,'','');
+        try
+                responseJson := httpget('/Join?CorpNum=' + CorpNum + '&LID=' + LinkID,'','');
 
-        result.code := getJSonInteger(responseJson,'code');
-        result.message := getJSonString(responseJson,'message');
+                result.code := getJSonInteger(responseJson,'code');
+                result.message := getJSonString(responseJson,'message');
+        except
+                on le : EPopbillException do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(le.code,le.Message);
+                        end;
+
+                        result.code := le.code;
+                        result.message := le.Message;
+                end;
+        end;
 end;
 
 
