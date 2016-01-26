@@ -94,6 +94,7 @@ type
                 FieldName       : string;
                 FileName        : string;
                 Data            : TStream;
+                destructor Destroy; override;
         end;
 
         TFileList = Array Of TFile;
@@ -176,6 +177,8 @@ type
                 //회사정보 수정
                 function UpdateCorpInfo(CorpNum : String; CorpInfo : TCorpInfo; UserID : String) : TResponse;
 
+                destructor Destroy; override;
+
         published
                 //TEST Mode. default is false.
                 property IsTest : bool read FIsTest write setIsTest;
@@ -194,6 +197,23 @@ type
         procedure WriteStrToStream(const Stream: TStream; Value: AnsiString);
 
 implementation
+
+destructor TPopbillBaseService.Destroy;
+begin
+  if Assigned(FToken) then
+    FToken.Free;
+  if Assigned(FAuth) then
+    FAuth.Free;
+  inherited Destroy;
+end;
+
+destructor TFile.Destroy;
+begin
+  if Assigned(Data) then
+    Data.Free;
+  inherited Destroy;
+end;
+
 constructor EPopbillException.Create(code : LongInt; Message : String);
 begin
         inherited Create(Message);
