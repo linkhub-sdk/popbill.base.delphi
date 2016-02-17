@@ -138,7 +138,7 @@ type
                 FScope     : Array Of String;
                 procedure setIsTest(value : bool);
                 procedure setIsThrowException(value : bool);
-
+                
                 function getSession_Token(CorpNum : String) : String;
                 function httpget(url : String; CorpNum : String; UserID : String) : String;
                 function httppost(url : String; CorpNum : String; UserID : String ; request : String) : String; overload;
@@ -149,6 +149,7 @@ type
 
         public
                 constructor Create(LinkID : String; SecretKey : String);
+
                 procedure AddScope(Scope : String);
 
                 //ÆËºô ÆË¾÷ url.
@@ -200,6 +201,9 @@ implementation
 
 destructor TPopbillBaseService.Destroy;
 begin
+  setlength(FScope,0);
+  FScope := nil;
+  
   if Assigned(FToken) then
     FToken.Free;
   if Assigned(FAuth) then
