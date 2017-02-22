@@ -7,7 +7,7 @@
 * http://www.popbill.com
 * Author : Kim Seongjun (pallet027@gmail.com)
 * Written : 2015-06-10
-
+* Updated : 2017-02-22
 * Thanks for your interest.
 *=================================================================================
 *)
@@ -153,7 +153,10 @@ type
                 procedure AddScope(Scope : String);
 
                 //팝빌 팝업 url.
-                function GetPopbillURL(CorpNum : String; UserID : String; TOGO : String) : String;
+                function GetPopbillURL(CorpNum : String; UserID : String; TOGO : String) : String; overload;
+                //팝빌 팝업 url overload
+                function GetPopbillURL(CorpNum : String; TOGO : String) : String; overload;
+
                 //연동회원 가입.
                 function JoinMember(JoinInfo : TJoinForm) : TResponse;
                 //가입여부 확인
@@ -167,16 +170,30 @@ type
                 
                 //연동회원 아이디 중복 확인
                 function CheckID(ID : String) : TResponse;
+
                 // 담당자 목록 조회.
-                function ListContact(CorpNum : String; UserID : string) : TContactInfoList;
+                function ListContact(CorpNum : String; UserID : string) : TContactInfoList; overload;
+                // 담당자 목록 조회 overload
+                function ListContact(CorpNum : String) : TContactInfoList; overload;
+
+
                 // 담당자 정보 수정
                 function UpdateContact(CorpNum : String; CorpInfo : TContactInfo; UserID : String) : TResponse;
+
                 // 담당자 추가
-                function RegistContact(CorpNum : String; JoinInfo : TJoinContact; UserID : String) : TResponse;
+                function RegistContact(CorpNum : String; JoinInfo : TJoinContact; UserID : String) : TResponse; overload;
+                // 담당자 추가, overload
+                function RegistContact(CorpNum : String; JoinInfo : TJoinContact) : TResponse; overload;
+
                 // 회사정보 확인
-                function GetCorpInfo(CorpNum : String; UserID : String) : TCorpInfo;
-                //회사정보 수정
-                function UpdateCorpInfo(CorpNum : String; CorpInfo : TCorpInfo; UserID : String) : TResponse;
+                function GetCorpInfo(CorpNum : String; UserID : String) : TCorpInfo; overload;
+                // 회사정보 확인. overload
+                function GetCorpInfo(CorpNum : String) : TCorpInfo; overload;
+
+                // 회사정보 수정
+                function UpdateCorpInfo(CorpNum : String; CorpInfo : TCorpInfo; UserID : String) : TResponse; overload;
+                // 회사정보 수정. overload
+                function UpdateCorpInfo(CorpNum : String; CorpInfo : TCorpInfo) : TResponse; overload;
 
                 destructor Destroy; override;
 
@@ -515,6 +532,11 @@ begin
         end;
 end;
 
+function TPopbillBaseService.GetCorpInfo(CorpNum : String) : TCorpInfo;
+begin
+        result := GetCorpInfo(CorpNum, '')
+end;
+
 function TPopbillBaseService.GetCorpInfo(CorpNum : String; UserID: String) : TCorpInfo;
 var
         responseJson : string;
@@ -584,6 +606,11 @@ begin
         result := requestJson;
 end;
 
+function TPopbillBaseService.UpdateCorpInfo(CorpNum : String; CorpInfo : TCorpInfo) : TResponse;
+begin
+        result := UpdateCorpInfo(CorpNum, CorpInfo, '');
+end;
+
 function TPopbillBaseService.UpdateCorpInfo(CorpNum : String; CorpInfo : TCorpInfo; UserID : String) : TResponse;
 var
         requestJson : string;
@@ -625,6 +652,12 @@ begin
         result := requestJson;
 end;
 
+function TPopbillBaseService.ListContact(CorpNum : String) : TContactInfoList;
+begin
+        Result := ListContact(CorpNum, '')
+end;
+
+
 function TPopbillBaseService.ListContact(CorpNum : String; UserID : String) : TContactInfoList;
 var
         responseJson : string;
@@ -663,13 +696,23 @@ begin
 end;
 
 
+function TPopbillBaseService.getPopbillURL(CorpNum : String; TOGO : String) : String;
+begin
+        Result := getPopbillURL(CorpNum, '', TOGO);
+end;
+
 
 function TPopbillBaseService.getPopbillURL(CorpNum : String; UserID : String; TOGO : String) : String;
 var
         responseJson : String;
 begin
-        responseJson := httpget('/?TG=' + TOGO ,CorpNum,UserID);
+        responseJson := httpget('/?TG=' + TOGO, CorpNum, UserID);
         result := getJSonString(responseJson,'url');
+end;
+
+function TPopbillBaseService.RegistContact(CorpNum : String; JoinInfo : TJoinContact) : TResponse;
+begin
+        Result := RegistContact(CorpNum, JoinInfo, '');
 end;
 
 function TPopbillBaseService.RegistContact(CorpNum : String; JoinInfo : TJoinContact; UserID : String) : TResponse;
