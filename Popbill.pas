@@ -6,8 +6,12 @@
 *
 * http://www.popbill.com
 * Author : Kim Seongjun (pallet027@gmail.com)
-* Written : 2015-06-10
-* Updated : 2017-02-22
+* Contributor : Jeong Yohan
+* Written : 2014-03-22
+* Updated : 2017-03-08
+* Update Log
+* - (2017-03-08) : HTTP OleObject Exception Handling
+*
 * Thanks for your interest.
 *=================================================================================
 *)
@@ -291,7 +295,7 @@ begin
         begin
 
                 try
-                        FToken := FAuth.getToken(getServiceID(),CorpNum,FScope);//,'192.168.10.222');
+                        FToken := FAuth.getToken(getServiceID(),CorpNum,FScope);
                         FTokenCorpNum := CorpNum;
                 except on le:ELinkhubException do
                         raise EPopbillException.Create(le.code,le.message);
@@ -318,30 +322,38 @@ begin
              else url := ServiceURL_REAL + url;
 
         postdata := request;
-        http:=createoleobject('MSXML2.XMLHTTP.6.0');
-        http.open('POST',url);
 
-        if(CorpNum <> '') then
-        begin
-                sessiontoken := getSession_Token(CorpNum);
-                HTTP.setRequestHeader('Authorization', 'Bearer ' + sessiontoken);
-        end;
-        if(action <> '') then
-        begin
-                HTTP.setRequestHeader('X-HTTP-Method-Override',action);
-        end;
-        
-        http.setRequestHeader('Accept-Encoding','gzip,deflate');
-        HTTP.setRequestHeader('x-lh-version',APIVersion);
+        try
+                http := createoleobject('MSXML2.XMLHTTP.6.0');
+                http.open('POST',url);
 
-        if UserID <> '' then
-        begin
-                HTTP.setRequestHeader('x-pb-userid',UserID);
-        end;
+                if(CorpNum <> '') then
+                begin
+                        sessiontoken := getSession_Token(CorpNum);
+                        HTTP.setRequestHeader('Authorization', 'Bearer ' + sessiontoken);
+                end;
+                if(action <> '') then
+                begin
+                        HTTP.setRequestHeader('X-HTTP-Method-Override',action);
+                end;
 
-        HTTP.setRequestHeader('Content-Type','Application/json ;');
+                http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                HTTP.setRequestHeader('x-lh-version',APIVersion);
 
-        http.send(postdata);
+                if UserID <> '' then
+                begin
+                        HTTP.setRequestHeader('x-pb-userid',UserID);
+                end;
+
+                HTTP.setRequestHeader('Content-Type','Application/json ;');
+
+                http.send(postdata);
+        except
+                On PE : EPopbillException do
+                        raise EPopbillException.Create(-99999999, PE.Message);
+                On E : Exception do
+                        raise EPopbillException.Create(-99999999, 'Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
+        end;        
 
         response := http.responsetext;
 
@@ -389,62 +401,71 @@ begin
              else url := ServiceURL_REAL + url;
 
         postdata := form;
-        http:=createoleobject('MSXML2.XMLHTTP.6.0');
-        http.open('POST',url);
 
-        if(CorpNum <> '') then
-        begin
-                sessiontoken := getSession_Token(CorpNum);
-                HTTP.setRequestHeader('Authorization', 'Bearer ' + sessiontoken);
+        try
+                http := createoleobject('MSXML2.XMLHTTP.6.0');
+                http.open('POST',url);
+
+                if(CorpNum <> '') then
+                begin
+                        sessiontoken := getSession_Token(CorpNum);
+                        HTTP.setRequestHeader('Authorization', 'Bearer ' + sessiontoken);
+                end;
+
+                HTTP.setRequestHeader('x-lh-version',APIVersion);
+                http.setRequestHeader('Accept-Encoding','gzip,deflate');
+
+                if UserID <> '' then
+                begin
+                        HTTP.setRequestHeader('x-pb-userid',UserID);
+                end;
+
+                if form <> '' then begin
+                        s := '--' + Bound + CRLF;
+                        s := s + 'content-disposition: form-data; name="form"' + CRLF;
+                        s := s + 'content-type: Application/json; charset=euc-kr' + CRLF + CRLF;
+                        s := s + form + CRLF;
+                        WriteStrToStream(Stream, s);
+                end;
+
+                for i:=0 to Length(files) -1 do begin
+
+                        // Start Of Part
+                        s := '--' + Bound + CRLF;
+                        s := s + 'content-disposition: form-data; name="' + files[i].FieldName + '";';
+                        s := s + ' filename="' + files[i].FileName +'"' + CRLF;
+                        s := s + 'Content-Type: Application/octet-stream' + CRLF + CRLF;
+
+                        {$IFDEF COMPILER15_UP}
+                        tmp := TEncoding.UTF8.GetBytes(s);
+                        {$ELSE}
+                        SetLength(tmp,Length(s)*3);
+                        intTemp := UnicodeToUtf8(@tmp[0], Length(tmp),PWideChar(s),Length(s));
+                        SetLength(tmp,intTemp-1);
+                        {$ENDIF}
+                        Stream.Write(tmp[0], length(tmp));
+
+                        Stream.CopyFrom(files[i].Data, 0);
+
+                        WriteStrToStream(Stream, CRLF);
+                end;
+
+                //End Of MultiPart
+                WriteStrToStream(Stream, '--' + Bound + '--' + CRLF);
+
+
+                HTTP.setRequestHeader('Content-Type','multipart/form-data; boundary=' + Bound);
+
+
+                http.send(MemoryStreamToOleVariant(Stream));
+                Stream.free;
+        except
+                On PE : EPopbillException do
+                        raise EPopbillException.Create(-99999999, PE.Message);
+                On E : Exception do
+                        raise EPopbillException.Create(-99999999, 'Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
         end;
-
-        HTTP.setRequestHeader('x-lh-version',APIVersion);
-        http.setRequestHeader('Accept-Encoding','gzip,deflate');
-        
-        if UserID <> '' then
-        begin
-                HTTP.setRequestHeader('x-pb-userid',UserID);
-        end;
-
-        if form <> '' then begin
-                s := '--' + Bound + CRLF;
-                s := s + 'content-disposition: form-data; name="form"' + CRLF;
-                s := s + 'content-type: Application/json; charset=euc-kr' + CRLF + CRLF;
-                s := s + form + CRLF;
-                WriteStrToStream(Stream, s);
-        end;                                                                                     
-
-        for i:=0 to Length(files) -1 do begin
-
-                // Start Of Part
-                s := '--' + Bound + CRLF;
-                s := s + 'content-disposition: form-data; name="' + files[i].FieldName + '";';
-                s := s + ' filename="' + files[i].FileName +'"' + CRLF;
-                s := s + 'Content-Type: Application/octet-stream' + CRLF + CRLF;
-
-                {$IFDEF COMPILER15_UP}
-                tmp := TEncoding.UTF8.GetBytes(s);
-                {$ELSE}
-                SetLength(tmp,Length(s)*3);
-                intTemp := UnicodeToUtf8(@tmp[0], Length(tmp),PWideChar(s),Length(s));
-                SetLength(tmp,intTemp-1);
-                {$ENDIF}
-                Stream.Write(tmp[0], length(tmp));
-
-                Stream.CopyFrom(files[i].Data, 0);
-
-                WriteStrToStream(Stream, CRLF);
-        end;
-
-        //End Of MultiPart
-        WriteStrToStream(Stream, '--' + Bound + '--' + CRLF);
-
-
-        HTTP.setRequestHeader('Content-Type','multipart/form-data; boundary=' + Bound);
-
-
-        http.send(MemoryStreamToOleVariant(Stream));
-        Stream.free;
+                                        
         
         response := http.responsetext;
 
@@ -479,26 +500,33 @@ begin
 
         if FIsTest then url := ServiceURL_TEST + url
              else url := ServiceURL_REAL + url;
+             
+        try
+                http := createoleobject('MSXML2.XMLHTTP.6.0');
+                http.open('GET',url);
 
-        http:=createoleobject('MSXML2.XMLHTTP.6.0');
-        http.open('GET',url);
+                if(CorpNum <> '') then
+                begin
+                        sessiontoken := getSession_Token(CorpNum);
+                        HTTP.setRequestHeader('Authorization','Bearer ' + sessiontoken);
+                end;
 
-        if(CorpNum <> '') then
-        begin
-                sessiontoken := getSession_Token(CorpNum);
-                HTTP.setRequestHeader('Authorization','Bearer ' + sessiontoken);
+                HTTP.setRequestHeader('x-lh-version', APIVersion);
+                http.setRequestHeader('Accept-Encoding','gzip,deflate');
+
+                if UserID <> '' then
+                begin
+                        HTTP.setRequestHeader('x-pb-userid',UserID);
+                end;
+
+                http.send;
+        except
+                On PE : EPopbillException do
+                        raise EPopbillException.Create(-99999999, PE.Message);
+                On E : Exception do
+                        raise EPopbillException.Create(-99999999, 'Fail to httpget() - ['+ E.ClassName + '] '+ E.Message);
         end;
-
-
-        HTTP.setRequestHeader('x-lh-version', APIVersion);
-        http.setRequestHeader('Accept-Encoding','gzip,deflate');
-
-        if UserID <> '' then
-        begin
-                HTTP.setRequestHeader('x-pb-userid',UserID);
-        end;
-
-        http.send;
+              
 
         response := http.responsetext;
 
@@ -520,14 +548,14 @@ begin
                 result.code := getJSonInteger(responseJson,'code');
                 result.message := getJSonString(responseJson,'message');
         except
-                on le : EPopbillException do begin
+                on PE : EPopbillException do begin
                         if FIsThrowException then
                         begin
-                                raise EPopbillException.Create(le.code,le.Message);
+                                raise EPopbillException.Create(PE.code,PE.Message);
                         end;
 
-                        result.code := le.code;
-                        result.message := le.Message;
+                        result.code := PE.code;
+                        result.message := PE.Message;
                 end;
         end;
 end;
@@ -814,9 +842,9 @@ begin
                         begin
                                 raise EPopbillException.Create(le.code,le.Message);
                         end;
-
+                        
                         result.code := le.code;
-                        result.message := le.Message;
+                        result.message := le.Message;                        
                 end;
         end;
 end;
@@ -824,12 +852,24 @@ end;
 
 function TPopbillBaseService.GetBalance(CorpNum : String) : Double;
 begin
-        result := FAuth.getBalance(getSession_Token(CorpNum),getServiceID());
+        try
+                result := FAuth.getBalance(getSession_Token(CorpNum),getServiceID());
+        except
+                on le : ELinkhubException do begin
+                        raise EPopbillException.Create(le.code,le.Message);
+                end;
+        end;
 end;
 
 function TPopbillBaseService.GetPartnerBalance(CorpNum : String) : Double;
 begin
-        result := FAuth.getPartnerBalance(getSession_Token(CorpNum),getServiceID());
+        try
+                result := FAuth.getPartnerBalance(getSession_Token(CorpNum),getServiceID());
+        except
+                on le : ELinkhubException do begin
+                        raise EPopbillException.Create(le.code,le.Message);
+                end;
+        end;                
 end;
 
 procedure WriteStrToStream(const Stream: TStream; Value: AnsiString);
