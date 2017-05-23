@@ -8,8 +8,9 @@
 * Author : Kim Seongjun (pallet027@gmail.com)
 * Contributor : Jeong Yohan
 * Written : 2014-03-22
-* Updated : 2017-03-08
+* Updated : 2017-05-23
 * Update Log
+* - (2017-05-23) : UpdateContact API bug fixed
 * - (2017-03-08) : HTTP OleObject Exception Handling
 *
 * Thanks for your interest.
@@ -624,7 +625,8 @@ begin
 
         if Contact.mgrYN then
         requestJson := requestJson + '"mgrYN":true,';
-        
+
+        requestJson := requestJson + '"id":"'+ EscapeString(Contact.id) +'",';
         requestJson := requestJson + '"personName":"'+ EscapeString(Contact.personName) +'",';
         requestJson := requestJson + '"tel":"'+ EscapeString(Contact.tel) +'",';
         requestJson := requestJson + '"hp":"'+ EscapeString(Contact.hp) +'",';
