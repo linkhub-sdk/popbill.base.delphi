@@ -52,7 +52,7 @@ const
         ServiceID_REAL = 'POPBILL';
         ServiceID_TEST = 'POPBILL_TEST';
         ServiceURL_REAL = 'https://popbill.linkhub.co.kr';
-        ServiceURL_TEST = 'https://popbill_test.linkhub.co.kr';
+        ServiceURL_TEST = 'https://popbill-test.linkhub.co.kr';
         APIVersion = '1.0';
         CR = #$0d;
         LF = #$0a;
