@@ -171,6 +171,9 @@ type
                 //파트너 잔여포인트 조회.
                 function GetPartnerBalance(CorpNum : String) : Double;
 
+                //파트너 포인트 충전 URL.
+                function GetPartnerURL(CorpNum : String; TOGO : String) : String;
+                
                 function getServiceID() : String;
                 
                 //연동회원 아이디 중복 확인
@@ -851,6 +854,16 @@ begin
         end;
 end;
 
+function TPopbillBaseService.GetPartnerURL(CorpNum : String; TOGO : String) : String;
+begin
+        try
+                result := FAuth.getPartnerURL(getSession_Token(CorpNum),getServiceID(), TOGO);
+        except
+                on le : ELinkhubException do begin
+                        raise EPopbillException.Create(le.code,le.Message);
+                end;
+        end;
+end;
 
 function TPopbillBaseService.GetBalance(CorpNum : String) : Double;
 begin
