@@ -8,38 +8,13 @@
 * Author : Kim Seongjun (pallet027@gmail.com)
 * Contributor : Jeong Yohan
 * Written : 2014-03-22
-* Updated : 2017-05-23
+* Updated : 2017-12-28
 * Update Log
-* - (2017-05-23) : UpdateContact API bug fixed
 * - (2017-03-08) : HTTP OleObject Exception Handling
-*
-* Thanks for your interest.
+* - (2017-05-23) : UpdateContact API bug fixed
+* - (2017-12-28) : fixed Compile Directive for Updated Compiler
 *=================================================================================
 *)
-{$IFDEF VER130}
-{$DEFINE D5}
-{$ENDIF}
-{$IFDEF VER240}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER250}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER260}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER270}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER280}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER290}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
-{$IFDEF VER300}
-{$DEFINE COMPILER15_UP}
-{$ENDIF}
 
 unit Popbill;
 
@@ -47,6 +22,17 @@ interface
 
 uses
         Windows, Messages,TypInfo, SysUtils, Classes ,ComObj,ActiveX,{$IFNDEF D5}Variants,{$ENDIF}Linkhub;
+
+{$IFDEF VER130}
+{$DEFINE D5}
+{$ENDIF}
+
+{$IFDEF CONDITIONALEXPRESSIONS}
+  {$IF System.CompilerVersion >= 24.0}
+    {$LEGACYIFEND ON}
+    {$DEFINE COMPILER15_UP}
+  {$IFEND}
+{$ENDIF}
 
 const
         ServiceID_REAL = 'POPBILL';
