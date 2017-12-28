@@ -20,12 +20,12 @@ unit Popbill;
 
 interface
 
-uses
-        Windows, Messages,TypInfo, SysUtils, Classes ,ComObj,ActiveX,{$IFNDEF D5}Variants,{$ENDIF}Linkhub;
-
 {$IFDEF VER130}
 {$DEFINE D5}
 {$ENDIF}
+
+uses
+        Windows, Messages,TypInfo, SysUtils, Classes ,ComObj,ActiveX,{$IFNDEF D5}Variants,{$ENDIF}Linkhub;
 
 {$IFDEF CONDITIONALEXPRESSIONS}
   {$IF System.CompilerVersion >= 24.0}
