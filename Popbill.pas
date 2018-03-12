@@ -8,11 +8,12 @@
 * Author : Kim Seongjun (pallet027@gmail.com)
 * Contributor : Jeong Yohan
 * Written : 2014-03-22
-* Updated : 2017-12-28
+* Updated : 2018-03-12
 * Update Log
 * - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2017-05-23) : UpdateContact API bug fixed
 * - (2017-12-28) : fixed Compile Directive for Updated Compiler
+* - (2018-03-12) : HTTPPost override contentsType
 *=================================================================================
 *)
 
@@ -133,7 +134,7 @@ type
                 function getSession_Token(CorpNum : String) : String;
                 function httpget(url : String; CorpNum : String; UserID : String) : String;
                 function httppost(url : String; CorpNum : String; UserID : String ; request : String) : String; overload;
-                function httppost(url : String; CorpNum : String; UserID : String ; request : String; Action : String) : String; overload;
+                function httppost(url : String; CorpNum : String; UserID : String ; request : String; Action : String; ContentsType : String = '') : String; overload;               
                 function httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; files : TFileList) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; form : String; files : TFileList) : String; overload;
@@ -299,7 +300,7 @@ begin
         result := httppost(url,CorpNum,UserID,request,'');
 end;
 
-function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; request : String; action:String) : String;
+function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; request : String; action:String; contentsType:String) : String;
 var
         http : olevariant;
         postdata : olevariant;
@@ -327,6 +328,16 @@ begin
                         HTTP.setRequestHeader('X-HTTP-Method-Override',action);
                 end;
 
+
+                if(contentsType<> '') then
+                begin
+                     HTTP.setRequestHeader('Content-Type',contentsType);
+                end
+                else
+                begin 
+                     HTTP.setRequestHeader('Content-Type','Application/json ;');
+                end;
+
                 http.setRequestHeader('Accept-Encoding','gzip,deflate');
                 HTTP.setRequestHeader('x-lh-version',APIVersion);
 
@@ -335,7 +346,7 @@ begin
                         HTTP.setRequestHeader('x-pb-userid',UserID);
                 end;
 
-                HTTP.setRequestHeader('Content-Type','Application/json ;');
+
 
                 http.send(postdata);
         except
