@@ -466,8 +466,8 @@ begin
                 On E : Exception do
                         raise EPopbillException.Create(-99999999, 'Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
         end;
-                                        
-        
+
+
         response := http.responsetext;
 
         if HTTP.Status <> 200 then
@@ -475,8 +475,6 @@ begin
                 raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
         end;
         result := response;
-
-
 end;
                                 
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String;
