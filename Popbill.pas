@@ -102,6 +102,7 @@ type
                 fax             : string;
                 mgrYN           : Boolean;
                 regDT           : string;
+                state           : integer;
         end;
         TContactInfoList = Array Of TContactInfo;
 
@@ -120,7 +121,7 @@ type
                 function jsonToTContactInfo(json : String) : TContactInfo;
                 function TCorpInfoTojson(CorpInfo : TCorpInfo) : String;
                 function TContactToJson(Contact : TContactInfo) : String;
-                
+
         protected
                 FToken     : TToken;
                 FIsTest    : bool;
@@ -130,11 +131,11 @@ type
                 FScope     : Array Of String;
                 procedure setIsTest(value : bool);
                 procedure setIsThrowException(value : bool);
-                
+
                 function getSession_Token(CorpNum : String) : String;
                 function httpget(url : String; CorpNum : String; UserID : String) : String;
                 function httppost(url : String; CorpNum : String; UserID : String ; request : String) : String; overload;
-                function httppost(url : String; CorpNum : String; UserID : String ; request : String; Action : String; ContentsType : String = '') : String; overload;               
+                function httppost(url : String; CorpNum : String; UserID : String ; request : String; Action : String; ContentsType : String = '') : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; files : TFileList) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; form : String; files : TFileList) : String; overload;
@@ -721,6 +722,7 @@ begin
         result.fax := getJSonString(json,'fax');
         result.mgrYN := getJSonBoolean(json,'mgrYN');
         result.regDT := getJSonString(json,'regDT');
+        result.state := getJSonInteger(json,'state');
 end;
 
 
@@ -842,9 +844,9 @@ begin
                         begin
                                 raise EPopbillException.Create(le.code,le.Message);
                         end;
-                        
+
                         result.code := le.code;
-                        result.message := le.Message;                        
+                        result.message := le.Message;
                 end;
         end;
 end;
@@ -879,7 +881,7 @@ begin
                 on le : ELinkhubException do begin
                         raise EPopbillException.Create(le.code,le.Message);
                 end;
-        end;                
+        end;
 end;
 
 procedure WriteStrToStream(const Stream: TStream; Value: AnsiString);
