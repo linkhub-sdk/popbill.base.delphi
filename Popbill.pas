@@ -6,14 +6,15 @@
 *
 * http://www.popbill.com
 * Author : Kim Seongjun (pallet027@gmail.com)
-* Contributor : Jeong Yohan
+* Contributor : Jeong Yohan, Kim Hyinjin
 * Written : 2014-03-22
-* Updated : 2018-03-12
+* Updated : 2018-11-21
 * Update Log
 * - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2017-05-23) : UpdateContact API bug fixed
 * - (2017-12-28) : fixed Compile Directive for Updated Compiler
 * - (2018-03-12) : HTTPPost override contentsType
+* - (2018-11-21) : popbill URL API update
 *=================================================================================
 *)
 
@@ -50,7 +51,7 @@ type
                 message : string;
         end;
 
-        
+
         TJoinForm = Record
                 LinkID          : string;
                 CorpNum         : string;
@@ -150,6 +151,12 @@ type
                 //팝빌 팝업 url overload
                 function GetPopbillURL(CorpNum : String; TOGO : String) : String; overload;
 
+                //팝빌 로그인 URL
+                function GetAccessURL(CorpNum : String; UserID : String) : String;
+
+                //팝빌 연동회원 포인트 충전 URL
+                function GetChargeURL(CorpNum : String; UserID : String) : String;
+
                 //연동회원 가입.
                 function JoinMember(JoinInfo : TJoinForm) : TResponse;
                 //가입여부 확인
@@ -161,9 +168,9 @@ type
 
                 //파트너 포인트 충전 URL.
                 function GetPartnerURL(CorpNum : String; TOGO : String) : String;
-                
+
                 function getServiceID() : String;
-                
+
                 //연동회원 아이디 중복 확인
                 function CheckID(ID : String) : TResponse;
 
@@ -739,6 +746,23 @@ begin
         responseJson := httpget('/?TG=' + TOGO, CorpNum, UserID);
         result := getJSonString(responseJson,'url');
 end;
+
+function TPopbillBaseService.getAccessURL(CorpNum : String; UserID : String; TOGO : String) : String;
+var
+        responseJson : String;
+begin
+        responseJson := httpget('/?TG=LOGIN', CorpNum, UserID);
+        result := getJSonString(responseJson,'url');
+end;
+
+function TPopbillBaseService.getChargeURL(CorpNum : String; UserID : String; TOGO : String) : String;
+var
+        responseJson : String;
+begin
+        responseJson := httpget('/?TG=CHRG', CorpNum, UserID);
+        result := getJSonString(responseJson,'url');
+end;
+
 
 function TPopbillBaseService.RegistContact(CorpNum : String; JoinInfo : TJoinContact) : TResponse;
 begin
