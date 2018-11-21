@@ -747,7 +747,7 @@ begin
         result := getJSonString(responseJson,'url');
 end;
 
-function TPopbillBaseService.getAccessURL(CorpNum : String; UserID : String; TOGO : String) : String;
+function TPopbillBaseService.getAccessURL(CorpNum : String; UserID : String) : String;
 var
         responseJson : String;
 begin
@@ -755,7 +755,7 @@ begin
         result := getJSonString(responseJson,'url');
 end;
 
-function TPopbillBaseService.getChargeURL(CorpNum : String; UserID : String; TOGO : String) : String;
+function TPopbillBaseService.getChargeURL(CorpNum : String; UserID : String) : String;
 var
         responseJson : String;
 begin
