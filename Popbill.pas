@@ -118,6 +118,10 @@ type
 
         TPopbillBaseService = class
         private
+                FLastErrCode : LongInt;
+                FLastErrMessage : String;        
+                procedure initLastError();
+
                 function jsonToTCorpInfo(json : String) : TCorpInfo;
                 function jsonToTContactInfo(json : String) : TContactInfo;
                 function TCorpInfoTojson(CorpInfo : TCorpInfo) : String;
@@ -132,6 +136,8 @@ type
                 FScope     : Array Of String;
                 procedure setIsTest(value : bool);
                 procedure setIsThrowException(value : bool);
+                procedure setLastErrCode(value : LongInt);
+                procedure setLastErrMessage(value : String);
 
                 function getSession_Token(CorpNum : String) : String;
                 function httpget(url : String; CorpNum : String; UserID : String) : String;
@@ -140,6 +146,7 @@ type
                 function httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; files : TFileList) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; form : String; files : TFileList) : String; overload;
+
 
         public
                 constructor Create(LinkID : String; SecretKey : String);
@@ -204,6 +211,8 @@ type
                 //TEST Mode. default is false.
                 property IsTest : bool read FIsTest write setIsTest;
                 property IsThrowException : bool read FIsThrowException write setIsThrowException;
+                property LastErrCode : LongInt read FLastErrCode write setLastErrCode;
+                property LastErrMessage : String read FLastErrMessage write setLastErrMessage;
         end;
 
         EPopbillException  = class(Exception)
@@ -259,6 +268,12 @@ begin
         FScope[length(FScope)-1] := scope;
 end;
 
+procedure TPopbillBaseService.initLastError();
+begin
+        FLastErrCode := 0;
+        FLastErrMessage := '';
+end;
+
 procedure TPopbillBaseService.setIsTest(value : bool);
 begin
         FIsTest := value;
@@ -267,6 +282,16 @@ end;
 procedure TPopbillBaseService.setIsThrowException(value : bool);
 begin
         FIsThrowException := value;
+end;
+
+procedure TPopbillBaseService.setLastErrCode(value : LongInt);
+begin
+        FLastErrCode := value;
+end;
+
+procedure TPopbillBaseService.setLastErrMessage(value : String);
+begin
+        FLastErrMessage := value;
 end;
 
 
@@ -317,6 +342,8 @@ var
      
 begin
 
+        initLastError();
+        
         if FIsTest then url := ServiceURL_TEST + url
              else url := ServiceURL_REAL + url;
 
@@ -354,24 +381,46 @@ begin
                         HTTP.setRequestHeader('x-pb-userid',UserID);
                 end;
 
-
-
                 http.send(postdata);
         except
-                On PE : EPopbillException do
-                        raise EPopbillException.Create(-99999999, PE.Message);
-                On E : Exception do
-                        raise EPopbillException.Create(-99999999, 'Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
+                On PE : EPopbillException do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(PE.code, PE.Message);
+                                exit;                        
+                        end;
+
+                        setLastErrCode(PE.code);
+                        setLastErrMessage(PE.Message);
+                        exit;
+                end;
+                On E : Exception do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(-99999999, 'Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
+                                exit;                
+                        end;
+
+                        setLastErrCode(-99999999);
+                        setLastErrMessage('Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
+                        exit;
+                end;
         end;        
 
         response := http.responsetext;
 
         if HTTP.Status <> 200 then
         begin
-                raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+                if FIsThrowException then
+                begin
+                        raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+                        exit;
+                end;
+                setLastErrCode(getJSonInteger(response,'code'));
+                setLastErrMessage(getJSonString(response,'message'));
+                exit;
         end;
         result := response;
-
 end;
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; files : TFileList) : String;
 begin
@@ -403,6 +452,8 @@ var
         i,intTemp : Integer;
         Stream: TMemoryStream;
 begin
+        initLastError();
+        
         Bound := '==POPBILL_DELPHI_SDK==';
         Stream := TMemoryStream.Create;
 
@@ -469,10 +520,33 @@ begin
                 http.send(MemoryStreamToOleVariant(Stream));
                 Stream.free;
         except
-                On PE : EPopbillException do
-                        raise EPopbillException.Create(-99999999, PE.Message);
-                On E : Exception do
-                        raise EPopbillException.Create(-99999999, 'Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
+                On PE : EPopbillException do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(PE.code, PE.Message);
+                                exit;                        
+                        end
+                        else
+                        begin
+                                setLastErrCode(PE.code);
+                                setLastErrMessage(PE.Message);
+                                exit;
+                        end;
+
+                end;
+                On E : Exception do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(-99999999, 'Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
+                                exit;
+                        end
+                        else
+                        begin
+                                setLastErrCode(-99999999);
+                                setLastErrMessage('Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
+                                exit; 
+                        end;
+                end;
         end;
 
 
@@ -480,7 +554,17 @@ begin
 
         if HTTP.Status <> 200 then
         begin
-                raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+                if FIsThrowException then
+                begin
+                        raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+                        exit;
+                end
+                else
+                begin
+                        setLastErrCode(getJSonInteger(response,'code'));
+                        setLastErrMessage(getJSonString(response,'message'));
+                        exit; 
+                end;
         end;
         result := response;
 end;
@@ -505,6 +589,8 @@ var
         sessiontoken : string;
 begin
 
+        initLastError();
+        
         if FIsTest then url := ServiceURL_TEST + url
              else url := ServiceURL_REAL + url;
              
@@ -528,10 +614,33 @@ begin
 
                 http.send;
         except
-                On PE : EPopbillException do
-                        raise EPopbillException.Create(-99999999, PE.Message);
-                On E : Exception do
-                        raise EPopbillException.Create(-99999999, 'Fail to httpget() - ['+ E.ClassName + '] '+ E.Message);
+                On PE : EPopbillException do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(PE.code, PE.Message);
+                                exit;
+                        end
+                        else
+                        begin
+                                setLastErrCode(PE.code);
+                                setLastErrMessage(PE.Message);
+                                exit;
+                        end;
+
+                end;                        
+                On E : Exception do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(-99999999, 'Fail to httpget() - ['+ E.ClassName + '] '+ E.Message);
+                                exit;
+                        end
+                        else
+                        begin
+                                setLastErrCode(-99999999);
+                                setLastErrMessage('Fail to httpget() - ['+ E.ClassName + '] '+ E.Message);
+                                exit;
+                        end;
+                end;
         end;
               
 
@@ -539,8 +648,20 @@ begin
 
         if HTTP.status <> 200 then
         begin
-                raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+                if FIsThrowException then
+                begin
+                        raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+                        exit;                
+                end
+                else
+                begin
+                        setLastErrCode(getJSonInteger(response,'code'));
+                        setLastErrMessage(getJSonString(response,'message'));
+                        exit;  
+                end;
+
         end;
+        
         result := response;
 
 end;
@@ -598,23 +719,33 @@ var
         requestJson : string;
         responseJson : string;
 begin
+
         try
                 requestJson := TContactTojson(CorpInfo);
-
                 responseJson := httppost('/IDs',CorpNum,UserID,requestJson);
 
-                result.code := getJSonInteger(responseJson,'code');
-                result.message := getJSonString(responseJson,'message');
+
         except
                 on le : EPopbillException do begin
                         if FIsThrowException then
                         begin
                                 raise EPopbillException.Create(le.code,le.Message);
                         end;
-                        
+
                         result.code := le.code;
                         result.message := le.Message;
                 end;
+        end;
+
+        if LastErrCode <> 0 then
+        begin
+                result.code := LastErrCode;
+                result.message := LastErrMessage;
+        end
+        else
+        begin
+                result.code := getJSonInteger(responseJson,'code');
+                result.message := getJSonString(responseJson,'message');
         end;
 end;
 
@@ -657,18 +788,29 @@ begin
 
                 responseJson := httppost('/CorpInfo',CorpNum,UserID,requestJson);
 
-                result.code := getJSonInteger(responseJson,'code');
-                result.message := getJSonString(responseJson,'message');
+
         except
                 on le : EPopbillException do begin
                         if FIsThrowException then
                         begin
                                 raise EPopbillException.Create(le.code,le.Message);
                         end;
-                        
+
                         result.code := le.code;
                         result.message := le.Message;
                 end;
+        end;
+
+        if LastErrCode <> 0 then
+        begin
+                result.code := LastErrCode;
+                result.message := LastErrMessage;
+                exit;
+        end
+        else
+        begin
+                result.code := getJSonInteger(responseJson,'code');
+                result.message := getJSonString(responseJson,'message');
         end;
 
 
@@ -702,17 +844,36 @@ var
 begin
         responseJson := httpget('/IDs',CorpNum, UserID);
 
-        try
-                jSons := ParseJsonList(responseJson);
-                SetLength(result,Length(jSons));
+        if LastErrCode <> 0 then
+        begin
+                exit;
+        end
+        else
+        begin
+                try
+                        jSons := ParseJsonList(responseJson);
+                        SetLength(result,Length(jSons));
 
-                for i := 0 to Length(jSons)-1 do
-                begin
-                        result[i] := jsonToTContactInfo(jSons[i]);
+                        for i := 0 to Length(jSons)-1 do
+                        begin
+                                result[i] := jsonToTContactInfo(jSons[i]);
+                        end;
+
+                except
+                        on E:Exception do
+                        begin
+                                if FIsThrowException then
+                                begin
+                                        raise EPopbillException.Create(-99999999,'결과처리 실패.[Malformed Json]');
+                                end
+                                else
+                                begin
+                                        SetLength(result, 0);
+                                        setLastErrCode(-99999999);
+                                        setLastErrMessage('결과처리 실패.[Malformed Json]');
+                                end;
+                        end;
                 end;
-
-        except on E:Exception do
-                raise EPopbillException.Create(-99999999,'결과처리 실패.[Malformed Json]');
         end;
 end;
 
@@ -794,17 +955,27 @@ begin
 
                 responseJson := httppost('/IDs/New',CorpNum,UserID,requestJson);
 
-                result.code := getJSonInteger(responseJson,'code');
-                result.message := getJSonString(responseJson,'message');
+                if LastErrCode <> 0 then
+                begin
+                        result.code := LastErrCode;
+                        result.message := LastErrMessage;
+                end
+                else
+                begin
+                        result.code := getJSonInteger(responseJson,'code');
+                        result.message := getJSonString(responseJson,'message');
+                end;
         except
                 on le : EPopbillException do begin
                         if FIsThrowException then
                         begin
                                 raise EPopbillException.Create(le.code,le.Message);
+                        end
+                        else
+                        begin
+                                result.code := le.code;
+                                result.Message := le.Message;
                         end;
-                        
-                        result.code := le.code;
-                        result.message := le.Message;
                 end;
         end;
 
@@ -837,9 +1008,6 @@ begin
                 requestJson := requestJson + '}';
 
                 responseJson := httppost('/Join','','',requestJson);
-
-                result.code := getJSonInteger(responseJson,'code');
-                result.message := getJSonString(responseJson,'message');
         except
                 on le : EPopbillException do begin
                         if FIsThrowException then
@@ -851,6 +1019,18 @@ begin
                         result.message := le.Message;
                 end;
         end;
+        
+        if LastErrCode <> 0 then
+        begin
+                result.code := LastErrCode;
+                result.message := LastErrMessage;
+                exit;
+        end
+        else
+        begin
+                result.code := getJSonInteger(responseJson,'code');
+                result.message := getJSonString(responseJson,'message');
+        end;        
 
 end;
 function TPopbillBaseService.CheckIsMember(CorpNum : String; LinkID : String) : TResponse;
