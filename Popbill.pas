@@ -6,15 +6,16 @@
 *
 * http://www.popbill.com
 * Author : Kim Seongjun (pallet027@gmail.com)
-* Contributor : Jeong Yohan, Kim Hyinjin
+* Contributor : Jeong Yohan
 * Written : 2014-03-22
-* Updated : 2018-11-21
+* Updated : 2019-09-25
 * Update Log
 * - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2017-05-23) : UpdateContact API bug fixed
 * - (2017-12-28) : fixed Compile Directive for Updated Compiler
 * - (2018-03-12) : HTTPPost override contentsType
 * - (2018-11-21) : popbill URL API update
+* - (2019-09-25) : IPRestrictOnOff Configuration
 *=================================================================================
 *)
 
@@ -130,12 +131,14 @@ type
         protected
                 FToken     : TToken;
                 FIsTest    : bool;
+                FIPRestrictOnOff    : bool;                
                 FIsThrowException : bool;
                 FTokenCorpNum : String;
                 FAuth      : TAuth;
                 FScope     : Array Of String;
                 procedure setIsTest(value : bool);
                 procedure setIsThrowException(value : bool);
+                procedure setIPRestrictOnOff(value : bool);                
                 procedure setLastErrCode(value : LongInt);
                 procedure setLastErrMessage(value : String);
 
@@ -210,6 +213,7 @@ type
         published
                 //TEST Mode. default is false.
                 property IsTest : bool read FIsTest write setIsTest;
+                property IPRestrictOnOff : bool read FIPRestrictOnOff write setIPRestrictOnOff;                
                 property IsThrowException : bool read FIsThrowException write setIsThrowException;
                 property LastErrCode : LongInt read FLastErrCode write setLastErrCode;
                 property LastErrMessage : String read FLastErrMessage write setLastErrMessage;
@@ -257,6 +261,7 @@ constructor TPopbillBaseService.Create(LinkID : String; SecretKey : String);
 begin
        FIstest := false; //기본값.
        FIsThrowException := true; //기본값.
+       FIPRestrictOnOff := true; //기본값.       
        FAuth := TAuth.Create(LinkID,SecretKey);
        setLength(FScope,1);
        FScope[0] := 'member';
@@ -277,6 +282,11 @@ end;
 procedure TPopbillBaseService.setIsTest(value : bool);
 begin
         FIsTest := value;
+end;
+
+procedure TPopbillBaseService.setIPRestrictOnOff(value : bool);
+begin
+        FIPRestrictOnOff := value;
 end;
 
 procedure TPopbillBaseService.setIsThrowException(value : bool);
@@ -319,7 +329,9 @@ begin
         begin
 
                 try
-                        FToken := FAuth.getToken(getServiceID(),CorpNum,FScope);
+                        if FIPRestrictOnOff then FToken := FAuth.getToken(getServiceID(), CorpNum, FScope)
+                        else FToken := FAuth.getToken(getServiceID(), CorpNum, FScope, '*');
+
                         FTokenCorpNum := CorpNum;
                 except on le:ELinkhubException do
                         raise EPopbillException.Create(le.code,le.message);
