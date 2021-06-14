@@ -167,6 +167,18 @@ type
                 //팝빌 연동회원 포인트 충전 URL
                 function GetChargeURL(CorpNum : String; UserID : String) : String;
 
+                //팝빌 연동회원 포인트 결제내역 URL
+                function GetPaymentURL(CorpNum : String; UserID : String) : String; overload;
+
+                //팝빌 연동회원 포인트 결제내역 URL Overload
+                function GetPaymentURL(CorpNum : String) : String; overload;
+
+                //팝빌 연동회원 포인트 사용내역 URL
+                function GetUseHistoryURL(CorpNum : String; UserID : String) : String; overload;
+
+                //팝빌 연동회원 포인트 사용내역 URL  Overload
+                function GetUseHistoryURL(CorpNum : String) : String; overload;
+
                 //연동회원 가입.
                 function JoinMember(JoinInfo : TJoinForm) : TResponse;
                 //가입여부 확인
@@ -933,6 +945,32 @@ var
         responseJson : String;
 begin
         responseJson := httpget('/?TG=CHRG', CorpNum, UserID);
+        result := getJSonString(responseJson,'url');
+end;
+
+function TPopbillBaseService.getUseHistoryURL(CorpNum : String) : String;
+begin
+        result := getUseHistoryURL(Corpnum, '');
+end;
+
+function TPopbillBaseService.getUseHistoryURL(CorpNum : String; UserID : String) : String;
+var
+        responseJson : String;
+begin
+        responseJson := httpget('/?TG=USEHISTORY', CorpNum, UserID);
+        result := getJSonString(responseJson,'url');
+end;
+
+function TPopbillBaseService.getPaymentURL(CorpNum : String) : String;
+begin
+        result := getPaymentURL(CorpNum, '');
+end;
+
+function TPopbillBaseService.getPaymentURL(CorpNum : String; UserID : String) : String;
+var
+        responseJson : String;
+begin
+        responseJson := httpget('/?TG=PAYMENT', CorpNum, UserID);
         result := getJSonString(responseJson,'url');
 end;
 
