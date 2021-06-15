@@ -80,6 +80,7 @@ type
                 fax             : string;
                 email           : string;
                 searchAllAllowYN : Boolean;
+                searchRole      : string;
                 mgrYN           : Boolean;
         end;
 
@@ -100,6 +101,7 @@ type
                 hp              : string;
                 personName      : string;
                 searchAllAllowYN : Boolean;
+                searchRole      : string;
                 tel             : string;
                 fax             : string;
                 mgrYN           : Boolean;
@@ -195,6 +197,11 @@ type
 
                 //연동회원 아이디 중복 확인
                 function CheckID(ID : String) : TResponse;
+
+                // 담당자 정보확인
+                function GetContactInfo(CorpNum : String; ContactID : String; UserID : String) : TContactInfo; overload;
+                // 담당자 정보확인 overload
+                function GetContactInfo(CorpNum : String; ContactID : String) : TContactInfo; overload;
 
                 // 담당자 목록 조회.
                 function ListContact(CorpNum : String; UserID : string) : TContactInfoList; overload;
@@ -780,7 +787,10 @@ var
         requestJson : string;
 begin
         requestJson := '{';
-        
+
+        if Length(Contact.SearchRole) <> 0 then
+        requestJson := requestJson + '"searchRole":"'+ EscapeString(Contact.searchRole) +'",';
+
         if Contact.searchAllAllowYN then
         requestJson := requestJson + '"searchAllAllowYN":true,';
 
@@ -854,11 +864,50 @@ begin
         result := requestJson;
 end;
 
-function TPopbillBaseService.ListContact(CorpNum : String) : TContactInfoList;
+function TPopbillBaseService.GetContactInfo(CorpNum : String; ContactID : String) : TContactInfo;
 begin
-        Result := ListContact(CorpNum, '')
+        Result := GetContactInfo(CorpNum, ContactID, '');
 end;
 
+function TPopbillBaseService.GetContactInfo(CorpNum : String; ContactID : String; UserID : String) : TContactInfo;
+var
+        requestJson : string;
+        responseJson : string;
+begin
+        requestJson := '{"id": "' + ContactID + '"}';
+
+        responseJson := httppost('/Contact',CorpNum, UserID, requestJson);
+
+        if LastErrCode <> 0 then
+        begin
+                exit;
+        end
+        else
+        begin
+              try
+                        result := jsonToTContactInfo(responseJson);
+                except
+                        on E:Exception do
+                        begin
+                                if FIsThrowException then
+                                begin
+                                        raise EPopbillException.Create(-99999999,'결과처리 실패.[Malformed Json]');
+                                end
+                                else
+                                begin
+                                        result := TContactInfo.Create;
+                                        setLastErrCode(-99999999);
+                                        setLastErrMessage('결과처리 실패.[Malformed Json]');
+                                end;
+                        end;
+                end;
+        end;
+end;
+
+function TPopbillBaseService.ListContact(CorpNum : String) : TContactInfoList;
+begin
+        Result := ListContact(CorpNum, '');
+end;
 
 function TPopbillBaseService.ListContact(CorpNum : String; UserID : String) : TContactInfoList;
 var
@@ -910,6 +959,7 @@ begin
         result.hp := getJSonString(json,'hp');
         result.personName := getJSonString(json,'personName');
         result.searchAllAllowYN := getJSonBoolean(json,'searchAllAllowYN');
+        result.searchRole := inttostr(getJSonInteger(json,'searchRole'));
         result.tel := getJSonString(json,'tel');
         result.fax := getJSonString(json,'fax');
         result.mgrYN := getJSonBoolean(json,'mgrYN');
@@ -984,9 +1034,13 @@ function TPopbillBaseService.RegistContact(CorpNum : String; JoinInfo : TJoinCon
 var
         requestJson : string;
         responseJson : string;
+        test : string;
 begin
         try
                 requestJson := '{';
+
+                if Length(JoinInfo.searchRole) <> 0 then
+                requestJson := requestJson + '"searchRole":"'+ EscapeString(JoinInfo.searchRole) +'"';
 
                 if JoinInfo.searchAllAllowYN then
                 requestJson := requestJson + '"searchAllAllowYN":true,';
@@ -1001,6 +1055,7 @@ begin
                 requestJson := requestJson + '"hp":"'+EscapeString(JoinInfo.hp)+'",';
                 requestJson := requestJson + '"fax":"'+EscapeString(JoinInfo.fax)+'",';
                 requestJson := requestJson + '"email":"'+EscapeString(JoinInfo.email)+'"';
+
                 requestJson := requestJson + '}';
 
                 responseJson := httppost('/IDs/New',CorpNum,UserID,requestJson);
