@@ -64,6 +64,7 @@ type
                 BizClass        : string;
                 ID              : string;
                 PWD             : string;
+                Password        : string;
                 ContactName     : string;
                 ContactTEL      : string;
                 ContactHP       : string;
@@ -74,6 +75,7 @@ type
         TJoinContact = Record
                 id              : string;
                 pwd             : string;
+                Password        : string;
                 personName      : string;
                 tel             : string;
                 hp              : string;
@@ -794,9 +796,6 @@ begin
         if Contact.searchAllAllowYN then
         requestJson := requestJson + '"searchAllAllowYN":true,';
 
-        if Contact.mgrYN then
-        requestJson := requestJson + '"mgrYN":true,';
-
         requestJson := requestJson + '"id":"'+ EscapeString(Contact.id) +'",';
         requestJson := requestJson + '"personName":"'+ EscapeString(Contact.personName) +'",';
         requestJson := requestJson + '"tel":"'+ EscapeString(Contact.tel) +'",';
@@ -1045,11 +1044,12 @@ begin
                 if JoinInfo.searchAllAllowYN then
                 requestJson := requestJson + '"searchAllAllowYN":true,';
 
-                if JoinInfo.mgrYN then
-                requestJson := requestJson + '"mgrYN":true,';
-
                 requestJson := requestJson + '"id":"'+EscapeString(JoinInfo.id)+'",';
                 requestJson := requestJson + '"pwd":"'+EscapeString(JoinInfo.pwd)+'",';
+                
+                if Length(JoinInfo.Password) <> 0 then
+                requestJson := requestJson + '"Password":"'+EscapeString(JoinInfo.Password)+'",';
+                
                 requestJson := requestJson + '"personName":"'+EscapeString(JoinInfo.personName)+'",';
                 requestJson := requestJson + '"tel":"'+EscapeString(JoinInfo.tel)+'",';
                 requestJson := requestJson + '"hp":"'+EscapeString(JoinInfo.hp)+'",';
@@ -1109,6 +1109,9 @@ begin
                 requestJson := requestJson + '"ContactFAX":"'+EscapeString(JoinInfo.ContactFAX)+'",';
                 requestJson := requestJson + '"ID":"'+EscapeString(JoinInfo.ID)+'",';
                 requestJson := requestJson + '"PWD":"'+EscapeString(JoinInfo.PWD)+'"';
+
+                if Length(JoinInfo.Password) <> 0 then
+                requestJson := requestJson + ',"Password":"'+EscapeString(JoinInfo.Password)+'"';
 
                 requestJson := requestJson + '}';
 
