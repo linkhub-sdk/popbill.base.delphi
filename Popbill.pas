@@ -1040,7 +1040,7 @@ begin
                 requestJson := '{';
 
                 if Length(JoinInfo.searchRole) <> 0 then
-                requestJson := requestJson + '"searchRole":"'+ EscapeString(JoinInfo.searchRole) +'"';
+                requestJson := requestJson + '"searchRole":"'+ EscapeString(JoinInfo.searchRole) +'",';
 
                 if JoinInfo.searchAllAllowYN then
                 requestJson := requestJson + '"searchAllAllowYN":true,';
