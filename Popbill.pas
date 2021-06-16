@@ -137,12 +137,14 @@ type
                 FIsTest    : bool;
                 FIPRestrictOnOff    : bool;                
                 FIsThrowException : bool;
+                FUseLocalTimeYN : bool;
                 FTokenCorpNum : String;
                 FAuth      : TAuth;
                 FScope     : Array Of String;
                 procedure setIsTest(value : bool);
                 procedure setIsThrowException(value : bool);
-                procedure setIPRestrictOnOff(value : bool);                
+                procedure setIPRestrictOnOff(value : bool);
+                procedure setUseLocalTimeYN(value : bool);                
                 procedure setLastErrCode(value : LongInt);
                 procedure setLastErrMessage(value : String);
 
@@ -234,7 +236,8 @@ type
         published
                 //TEST Mode. default is false.
                 property IsTest : bool read FIsTest write setIsTest;
-                property IPRestrictOnOff : bool read FIPRestrictOnOff write setIPRestrictOnOff;                
+                property IPRestrictOnOff : bool read FIPRestrictOnOff write setIPRestrictOnOff;
+                property UseLocalTimeYN : bool read FUseLocalTimeYN write setUseLocalTimeYN;                
                 property IsThrowException : bool read FIsThrowException write setIsThrowException;
                 property LastErrCode : LongInt read FLastErrCode write setLastErrCode;
                 property LastErrMessage : String read FLastErrMessage write setLastErrMessage;
@@ -282,7 +285,8 @@ constructor TPopbillBaseService.Create(LinkID : String; SecretKey : String);
 begin
        FIstest := false; //기본값.
        FIsThrowException := true; //기본값.
-       FIPRestrictOnOff := true; //기본값.       
+       FIPRestrictOnOff := true; //기본값.
+       FUseLocalTimeYN := false; //기본값.       
        FAuth := TAuth.Create(LinkID,SecretKey);
        setLength(FScope,1);
        FScope[0] := 'member';
@@ -308,6 +312,11 @@ end;
 procedure TPopbillBaseService.setIPRestrictOnOff(value : bool);
 begin
         FIPRestrictOnOff := value;
+end;
+
+procedure TPopbillBaseService.setUseLocalTimeYN(value : bool);
+begin
+        FUseLocalTimeYN := value;
 end;
 
 procedure TPopbillBaseService.setIsThrowException(value : bool);
@@ -342,7 +351,7 @@ begin
                 if FTokenCorpNum <> CorpNum then noneOrExpired := true
                 else begin
                         Expiration := UTCToDate(FToken.expiration);
-                        noneOrExpired := expiration < UTCToDate(FAuth.getTime());
+                        noneOrExpired := expiration < UTCToDate(FAuth.getTime(FUseLocalTimeYN));
                 end;
         end;
 
@@ -350,8 +359,8 @@ begin
         begin
 
                 try
-                        if FIPRestrictOnOff then FToken := FAuth.getToken(getServiceID(), CorpNum, FScope)
-                        else FToken := FAuth.getToken(getServiceID(), CorpNum, FScope, '*');
+                        if FIPRestrictOnOff then FToken := FAuth.getToken(getServiceID(), CorpNum, FScope, '', FUseLocalTimeYN)
+                        else FToken := FAuth.getToken(getServiceID(), CorpNum, FScope, '*', FUseLocalTimeYN);
 
                         FTokenCorpNum := CorpNum;
                 except on le:ELinkhubException do
