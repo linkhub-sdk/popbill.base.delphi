@@ -42,6 +42,11 @@ const
         ServiceID_TEST = 'POPBILL_TEST';
         ServiceURL_REAL = 'https://popbill.linkhub.co.kr';
         ServiceURL_TEST = 'https://popbill-test.linkhub.co.kr';
+        ServiceURL_Static_REAL = 'https://static-popbill.linkhub.co.kr';
+        ServiceURL_Static_TEST = 'https://static-popbill-test.linkhub.co.kr';
+        ServiceURL_GA_REAL = 'https://ga-popbill.linkhub.co.kr';
+        ServiceURL_GA_TEST = 'https://ga-popbill-test.linkhub.co.kr';
+
         APIVersion = '1.0';
         CR = #$0d;
         LF = #$0a;
@@ -135,13 +140,17 @@ type
         protected
                 FToken     : TToken;
                 FIsTest    : bool;
-                FIPRestrictOnOff    : bool;                
+                FUseStaticIP : bool;
+                FUseGAIP : bool;
+                FIPRestrictOnOff    : bool;
                 FIsThrowException : bool;
                 FUseLocalTimeYN : bool;
                 FTokenCorpNum : String;
                 FAuth      : TAuth;
                 FScope     : Array Of String;
                 procedure setIsTest(value : bool);
+                procedure setUseStaticIP(value : bool);
+                procedure setUseGAIP(value : bool);
                 procedure setIsThrowException(value : bool);
                 procedure setIPRestrictOnOff(value : bool);
                 procedure setUseLocalTimeYN(value : bool);                
@@ -233,9 +242,12 @@ type
 
                 destructor Destroy; override;
 
+                function getTargetURL() : String;
         published
                 //TEST Mode. default is false.
                 property IsTest : bool read FIsTest write setIsTest;
+                property UseStaticIP : bool read FUseStaticIP write FUseStaticIP;
+                property UseGAIP : bool read FUseGAIP write FUseGAIP;
                 property IPRestrictOnOff : bool read FIPRestrictOnOff write setIPRestrictOnOff;
                 property UseLocalTimeYN : bool read FUseLocalTimeYN write setUseLocalTimeYN;                
                 property IsThrowException : bool read FIsThrowException write setIsThrowException;
@@ -253,7 +265,7 @@ type
         end;
 
         procedure WriteStrToStream(const Stream: TStream; Value: AnsiString);
-
+        function IfThen(condition :boolean; trueVal :String ; falseVal : String) : string;
 implementation
 
 destructor TPopbillBaseService.Destroy;
@@ -286,7 +298,9 @@ begin
        FIstest := false; //기본값.
        FIsThrowException := true; //기본값.
        FIPRestrictOnOff := true; //기본값.
-       FUseLocalTimeYN := false; //기본값.       
+       FUseStaticIP := false; //기본값.
+       FUseGAIP := false; //기본값.
+       FUseLocalTimeYN := false; //기본값.
        FAuth := TAuth.Create(LinkID,SecretKey);
        setLength(FScope,1);
        FScope[0] := 'member';
@@ -312,6 +326,16 @@ end;
 procedure TPopbillBaseService.setIPRestrictOnOff(value : bool);
 begin
         FIPRestrictOnOff := value;
+end;
+
+procedure TPopbillBaseService.setUseStaticIP(value : bool);
+begin
+        FUseStaticIP := value;
+end;
+
+procedure TPopbillBaseService.setUseGAIP(value : bool);
+begin
+        FUseGAIP := value;
 end;
 
 procedure TPopbillBaseService.setUseLocalTimeYN(value : bool);
@@ -351,7 +375,7 @@ begin
                 if FTokenCorpNum <> CorpNum then noneOrExpired := true
                 else begin
                         Expiration := UTCToDate(FToken.expiration);
-                        noneOrExpired := expiration < UTCToDate(FAuth.getTime(FUseLocalTimeYN));
+                        noneOrExpired := expiration < UTCToDate(FAuth.getTime(FUseLocalTimeYN, FUseStaticIP, FUseGAIP));
                 end;
         end;
 
@@ -359,8 +383,8 @@ begin
         begin
 
                 try
-                        if FIPRestrictOnOff then FToken := FAuth.getToken(getServiceID(), CorpNum, FScope, '', FUseLocalTimeYN)
-                        else FToken := FAuth.getToken(getServiceID(), CorpNum, FScope, '*', FUseLocalTimeYN);
+                        if FIPRestrictOnOff then FToken := FAuth.getToken(getServiceID(), CorpNum, FScope, '', FUseLocalTimeYN, FUseStaticIP, FUseGAIP)
+                        else FToken := FAuth.getToken(getServiceID(), CorpNum, FScope, '*', FUseLocalTimeYN, FUseStaticIP, FUseGAIP);
 
                         FTokenCorpNum := CorpNum;
                 except on le:ELinkhubException do
@@ -385,10 +409,9 @@ var
 begin
 
         initLastError();
-        
-        if FIsTest then url := ServiceURL_TEST + url
-             else url := ServiceURL_REAL + url;
 
+        url := getTargetURL() + url;
+        
         postdata := request;
 
         try
@@ -499,8 +522,7 @@ begin
         Bound := '==POPBILL_DELPHI_SDK==';
         Stream := TMemoryStream.Create;
 
-        if FIsTest then url := ServiceURL_TEST + url
-             else url := ServiceURL_REAL + url;
+        url := getTargetURL() + url;
 
         postdata := form;
 
@@ -633,8 +655,7 @@ begin
 
         initLastError();
         
-        if FIsTest then url := ServiceURL_TEST + url
-             else url := ServiceURL_REAL + url;
+        url := getTargetURL() + url;
              
         try
                 http := createoleobject('MSXML2.XMLHTTP.6.0');
@@ -1175,7 +1196,7 @@ end;
 function TPopbillBaseService.GetPartnerURL(CorpNum : String; TOGO : String) : String;
 begin
         try
-                result := FAuth.getPartnerURL(getSession_Token(CorpNum),getServiceID(), TOGO);
+                result := FAuth.getPartnerURL(getSession_Token(CorpNum),getServiceID(), TOGO, FUseStaticIP, FUseGAIP);
         except
                 on le : ELinkhubException do begin
                         raise EPopbillException.Create(le.code,le.Message);
@@ -1186,7 +1207,7 @@ end;
 function TPopbillBaseService.GetBalance(CorpNum : String) : Double;
 begin
         try
-                result := FAuth.getBalance(getSession_Token(CorpNum),getServiceID());
+                result := FAuth.getBalance(getSession_Token(CorpNum),getServiceID(), FUseStaticIP, FUseGAIP);
         except
                 on le : ELinkhubException do begin
                         raise EPopbillException.Create(le.code,le.Message);
@@ -1197,13 +1218,27 @@ end;
 function TPopbillBaseService.GetPartnerBalance(CorpNum : String) : Double;
 begin
         try
-                result := FAuth.getPartnerBalance(getSession_Token(CorpNum),getServiceID());
+                result := FAuth.getPartnerBalance(getSession_Token(CorpNum),getServiceID(), FUseStaticIP, FUseGAIP);
         except
                 on le : ELinkhubException do begin
                         raise EPopbillException.Create(le.code,le.Message);
                 end;
         end;
 end;
+
+function TPopbillBaseService.getTargetURL() : String;
+begin
+        if FUseGAIP then result := IfThen(FIsTest, ServiceURL_GA_TEST, ServiceURL_GA_REAL)
+        else if FUseStaticIP then result := IfThen(FIsTest, ServiceURL_Static_TEST, ServiceURL_Static_REAL)
+        else result := IfThen(FIsTest, ServiceURL_TEST, ServiceURL_REAL);
+end;
+
+function IfThen(condition :boolean; trueVal :String ; falseVal : String) : String;
+begin
+    if condition then result := trueVal else result := falseVal;
+end;
+
+
 
 procedure WriteStrToStream(const Stream: TStream; Value: AnsiString);
 {$IFDEF CIL}
