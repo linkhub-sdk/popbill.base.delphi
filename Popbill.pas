@@ -4,11 +4,11 @@
 * RESTful web service request and parse json result. It uses Linkhub module
 * to accomplish authentication APIs.
 *
-* http://www.popbill.com
-* Author : Kim Seongjun (pallet027@gmail.com)
-* Contributor : Jeong Yohan
+* https://www.popbill.com
+* Author : Kim Seongjun
+* Contributor : Jeong Yohan (code@linkhubcorp.com)
 * Written : 2014-03-22
-* Updated : 2021-06-15
+* Updated : 2022-04-07
 * Update Log
 * - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2017-05-23) : UpdateContact API bug fixed
