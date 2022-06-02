@@ -164,7 +164,7 @@ type
                 function httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; files : TFileList) : String; overload;
                 function httppost(url : String; CorpNum : String; UserID : String ; form : String; files : TFileList) : String; overload;
-
+                function httpbulkpost(url : String; CorpNum : String; UserID : String ; SubmitID : String; request : String; action : String) : String;
 
         public
                 constructor Create(LinkID : String; SecretKey : String);
@@ -392,6 +392,102 @@ begin
                 end;
         end;
         result := FToken.session_token;
+end;
+
+function TPopbillBaseService.httpbulkpost(url : String; CorpNum : String; UserID : String ; SubmitID : String; request : AnsiString; action : String) : String;
+var
+        http : olevariant;
+        postdata : olevariant;
+        response : string;
+        sessiontoken : string;
+        base64Post : string;
+        requestobj : olevariant;
+        AStream : TMemoryStream;
+begin
+
+        initLastError();
+
+        url := getTargetURL() + url;
+        
+        postdata := request;
+           
+        try
+                http := createoleobject('MSXML2.XMLHTTP.6.0');
+                http.open('POST',url);
+
+                if(CorpNum <> '') then
+                begin
+                        sessiontoken := getSession_Token(CorpNum);
+                        HTTP.setRequestHeader('Authorization', 'Bearer ' + sessiontoken);
+                end;
+                if(action <> '') then
+                begin
+                        HTTP.setRequestHeader('X-HTTP-Method-Override',action);
+                        if(action = 'BULKISSUE') then
+                        begin
+                                base64Post := EncodeBase64(SHA1(request));
+                                HTTP.setRequestHeader('x-pb-message-digest', base64Post);
+                                HTTP.setRequestHeader('x-pb-submit-id', SubmitID)
+                        end;
+                end;
+
+                if (action = 'BULKISSUE') then
+                begin
+                                HTTP.setRequestHeader('Content-Type','Application/json; charset=utf-8;');
+                end
+                else
+                begin
+                                HTTP.setRequestHeader('Content-Type','Application/json; charset=euc-kr;');
+                end;
+
+                http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                HTTP.setRequestHeader('x-lh-version',APIVersion);
+
+                if UserID <> '' then
+                begin
+                        HTTP.setRequestHeader('x-pb-userid',UserID);
+                end;
+
+                http.send(postdata);
+        except
+                On PE : EPopbillException do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(PE.code, PE.Message);
+                                exit;                        
+                        end;
+
+                        setLastErrCode(PE.code);
+                        setLastErrMessage(PE.Message);
+                        exit;
+                end;
+                On E : Exception do begin
+                        if FIsThrowException then
+                        begin
+                                raise EPopbillException.Create(-99999999, 'Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
+                                exit;                
+                        end;
+
+                        setLastErrCode(-99999999);
+                        setLastErrMessage('Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
+                        exit;
+                end;
+        end;        
+
+        response := http.responsetext;
+
+        if HTTP.Status <> 200 then
+        begin
+                if FIsThrowException then
+                begin
+                        raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
+                        exit;
+                end;
+                setLastErrCode(getJSonInteger(response,'code'));
+                setLastErrMessage(getJSonString(response,'message'));
+                exit;
+        end;
+        result := response;
 end;
 
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; request : String) : String;
