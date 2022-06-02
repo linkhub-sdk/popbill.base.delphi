@@ -8,7 +8,7 @@
 * Author : Kim Seongjun
 * Contributor : Jeong Yohan (code@linkhubcorp.com)
 * Written : 2014-03-22
-* Updated : 2022-04-07
+* Updated : 2022-06-02
 * Update Log
 * - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2017-05-23) : UpdateContact API bug fixed
