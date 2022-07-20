@@ -8,7 +8,7 @@
 * Author : Kim Seongjun
 * Contributor : Jeong Yohan (code@linkhubcorp.com)
 * Written : 2014-03-22
-* Updated : 2022-06-02
+* Updated : 2022-07-20
 * Update Log
 * - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2017-05-23) : UpdateContact API bug fixed
@@ -29,13 +29,6 @@ interface
 
 uses
         Windows, Messages,TypInfo, SysUtils, Classes ,ComObj,ActiveX,{$IFNDEF D5}Variants,{$ENDIF}Linkhub;
-
-{$IFDEF CONDITIONALEXPRESSIONS}
-  {$IF System.CompilerVersion >= 24.0}
-    {$LEGACYIFEND ON}
-    {$DEFINE COMPILER15_UP}
-  {$IFEND}
-{$ENDIF}
 
 const
         ServiceID_REAL = 'POPBILL';
@@ -129,7 +122,7 @@ type
         TPopbillBaseService = class
         private
                 FLastErrCode : LongInt;
-                FLastErrMessage : String;        
+                FLastErrMessage : String;
                 procedure initLastError();
 
                 function jsonToTCorpInfo(json : String) : TCorpInfo;
@@ -153,7 +146,7 @@ type
                 procedure setUseGAIP(value : bool);
                 procedure setIsThrowException(value : bool);
                 procedure setIPRestrictOnOff(value : bool);
-                procedure setUseLocalTimeYN(value : bool);                
+                procedure setUseLocalTimeYN(value : bool);
                 procedure setLastErrCode(value : LongInt);
                 procedure setLastErrMessage(value : String);
 
@@ -249,7 +242,7 @@ type
                 property UseStaticIP : bool read FUseStaticIP write FUseStaticIP;
                 property UseGAIP : bool read FUseGAIP write FUseGAIP;
                 property IPRestrictOnOff : bool read FIPRestrictOnOff write setIPRestrictOnOff;
-                property UseLocalTimeYN : bool read FUseLocalTimeYN write setUseLocalTimeYN;                
+                property UseLocalTimeYN : bool read FUseLocalTimeYN write setUseLocalTimeYN;
                 property IsThrowException : bool read FIsThrowException write setIsThrowException;
                 property LastErrCode : LongInt read FLastErrCode write setLastErrCode;
                 property LastErrMessage : String read FLastErrMessage write setLastErrMessage;
@@ -272,7 +265,7 @@ destructor TPopbillBaseService.Destroy;
 begin
   setlength(FScope,0);
   FScope := nil;
-  
+
   if Assigned(FToken) then
     FToken.Free;
   if Assigned(FAuth) then
@@ -394,7 +387,7 @@ begin
         result := FToken.session_token;
 end;
 
-function TPopbillBaseService.httpbulkpost(url : String; CorpNum : String; UserID : String ; SubmitID : String; request : AnsiString; action : String) : String;
+function TPopbillBaseService.httpbulkpost(url : String; CorpNum : String; UserID : String ; SubmitID : String; request : String; action : String) : String;
 var
         http : olevariant;
         postdata : olevariant;
@@ -408,9 +401,9 @@ begin
         initLastError();
 
         url := getTargetURL() + url;
-        
+
         postdata := request;
-           
+
         try
                 http := createoleobject('MSXML2.XMLHTTP.6.0');
                 http.open('POST',url);
@@ -454,7 +447,7 @@ begin
                         if FIsThrowException then
                         begin
                                 raise EPopbillException.Create(PE.code, PE.Message);
-                                exit;                        
+                                exit;
                         end;
 
                         setLastErrCode(PE.code);
@@ -465,14 +458,14 @@ begin
                         if FIsThrowException then
                         begin
                                 raise EPopbillException.Create(-99999999, 'Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
-                                exit;                
+                                exit;
                         end;
 
                         setLastErrCode(-99999999);
                         setLastErrMessage('Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
                         exit;
                 end;
-        end;        
+        end;
 
         response := http.responsetext;
 
@@ -501,13 +494,13 @@ var
         postdata : olevariant;
         response : string;
         sessiontoken : string;
-     
+
 begin
 
         initLastError();
 
         url := getTargetURL() + url;
-        
+
         postdata := request;
 
         try
@@ -530,7 +523,7 @@ begin
                      HTTP.setRequestHeader('Content-Type',contentsType);
                 end
                 else
-                begin 
+                begin
                      HTTP.setRequestHeader('Content-Type','Application/json ;');
                 end;
 
@@ -548,7 +541,7 @@ begin
                         if FIsThrowException then
                         begin
                                 raise EPopbillException.Create(PE.code, PE.Message);
-                                exit;                        
+                                exit;
                         end;
 
                         setLastErrCode(PE.code);
@@ -559,14 +552,14 @@ begin
                         if FIsThrowException then
                         begin
                                 raise EPopbillException.Create(-99999999, 'Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
-                                exit;                
+                                exit;
                         end;
 
                         setLastErrCode(-99999999);
                         setLastErrMessage('Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
                         exit;
                 end;
-        end;        
+        end;
 
         response := http.responsetext;
 
@@ -589,9 +582,9 @@ begin
 end;
 
 function MemoryStreamToOleVariant(const Strm: TMemoryStream): OleVariant;
-var 
+var
         Data: PByteArray;
-begin 
+begin
         Result := VarArrayCreate ([0, Strm.Size - 1], varByte);
         Data := VarArrayLock(Result);
         try
@@ -609,12 +602,11 @@ var
         response : string;
         sessiontoken : string;
         Bound,s : WideString;
-        tmp : {$IFDEF COMPILER15_UP}TArray<Byte>{$ELSE}Array of Byte{$ENDIF};
         i,intTemp : Integer;
         Stream: TMemoryStream;
 begin
         initLastError();
-        
+
         Bound := '==POPBILL_DELPHI_SDK==';
         Stream := TMemoryStream.Create;
 
@@ -656,14 +648,7 @@ begin
                         s := s + ' filename="' + files[i].FileName +'"' + CRLF;
                         s := s + 'Content-Type: Application/octet-stream' + CRLF + CRLF;
 
-                        {$IFDEF COMPILER15_UP}
-                        tmp := TEncoding.UTF8.GetBytes(s);
-                        {$ELSE}
-                        SetLength(tmp,Length(s)*3);
-                        intTemp := UnicodeToUtf8(@tmp[0], Length(tmp),PWideChar(s),Length(s));
-                        SetLength(tmp,intTemp-1);
-                        {$ENDIF}
-                        Stream.Write(tmp[0], length(tmp));
+                        WriteStrToStream(Stream, EncodeUTF8(s));
 
                         Stream.CopyFrom(files[i].Data, 0);
 
@@ -684,7 +669,7 @@ begin
                         if FIsThrowException then
                         begin
                                 raise EPopbillException.Create(PE.code, PE.Message);
-                                exit;                        
+                                exit;
                         end
                         else
                         begin
@@ -704,7 +689,7 @@ begin
                         begin
                                 setLastErrCode(-99999999);
                                 setLastErrMessage('Fail to httppost() - ['+ E.ClassName + '] '+ E.Message);
-                                exit; 
+                                exit;
                         end;
                 end;
         end;
@@ -723,12 +708,12 @@ begin
                 begin
                         setLastErrCode(getJSonInteger(response,'code'));
                         setLastErrMessage(getJSonString(response,'message'));
-                        exit; 
+                        exit;
                 end;
         end;
         result := response;
 end;
-                                
+
 function TPopbillBaseService.httppost(url : String; CorpNum : String; UserID : String ; FieldName,FileName : String; data: TStream) : String;
 var
         files : TFileList;
@@ -750,9 +735,9 @@ var
 begin
 
         initLastError();
-        
+
         url := getTargetURL() + url;
-             
+
         try
                 http := createoleobject('MSXML2.XMLHTTP.6.0');
                 http.open('GET',url);
@@ -786,7 +771,7 @@ begin
                                 exit;
                         end;
 
-                end;                        
+                end;
                 On E : Exception do begin
                         if FIsThrowException then
                         begin
@@ -801,7 +786,7 @@ begin
                         end;
                 end;
         end;
-              
+
 
         response := http.responsetext;
 
@@ -810,17 +795,17 @@ begin
                 if FIsThrowException then
                 begin
                         raise EPopbillException.Create(getJSonInteger(response,'code'),getJSonString(response,'message'));
-                        exit;                
+                        exit;
                 end
                 else
                 begin
                         setLastErrCode(getJSonInteger(response,'code'));
                         setLastErrMessage(getJSonString(response,'message'));
-                        exit;  
+                        exit;
                 end;
 
         end;
-        
+
         result := response;
 
 end;
@@ -1172,10 +1157,10 @@ begin
 
                 requestJson := requestJson + '"id":"'+EscapeString(JoinInfo.id)+'",';
                 requestJson := requestJson + '"pwd":"'+EscapeString(JoinInfo.pwd)+'",';
-                
+
                 if Length(JoinInfo.Password) <> 0 then
                 requestJson := requestJson + '"Password":"'+EscapeString(JoinInfo.Password)+'",';
-                
+
                 requestJson := requestJson + '"personName":"'+EscapeString(JoinInfo.personName)+'",';
                 requestJson := requestJson + '"tel":"'+EscapeString(JoinInfo.tel)+'",';
                 requestJson := requestJson + '"hp":"'+EscapeString(JoinInfo.hp)+'",';
@@ -1248,12 +1233,12 @@ begin
                         begin
                                 raise EPopbillException.Create(le.code,le.Message);
                         end;
-                        
+
                         result.code := le.code;
                         result.message := le.Message;
                 end;
         end;
-        
+
         if LastErrCode <> 0 then
         begin
                 result.code := LastErrCode;
@@ -1264,7 +1249,7 @@ begin
         begin
                 result.code := getJSonInteger(responseJson,'code');
                 result.message := getJSonString(responseJson,'message');
-        end;        
+        end;
 
 end;
 function TPopbillBaseService.CheckIsMember(CorpNum : String; LinkID : String) : TResponse;
