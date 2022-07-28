@@ -8,7 +8,7 @@
 * Author : Kim Seongjun
 * Contributor : Jeong Yohan (code@linkhubcorp.com)
 * Written : 2014-03-22
-* Updated : 2022-07-20
+* Updated : 2022-07-25
 * Update Log
 * - (2017-03-08) : HTTP OleObject Exception Handling
 * - (2017-05-23) : UpdateContact API bug fixed
@@ -435,6 +435,7 @@ begin
 
                 http.setRequestHeader('Accept-Encoding','gzip,deflate');
                 HTTP.setRequestHeader('x-lh-version',APIVersion);
+                http.setRequestHeader('User-Agent','DELPHI POPBiLL SDK');
 
                 if UserID <> '' then
                 begin
@@ -529,6 +530,7 @@ begin
 
                 http.setRequestHeader('Accept-Encoding','gzip,deflate');
                 HTTP.setRequestHeader('x-lh-version',APIVersion);
+                http.setRequestHeader('User-Agent','DELPHI POPBiLL SDK');
 
                 if UserID <> '' then
                 begin
@@ -626,6 +628,7 @@ begin
 
                 HTTP.setRequestHeader('x-lh-version',APIVersion);
                 http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                http.setRequestHeader('User-Agent','DELPHI POPBiLL SDK');
 
                 if UserID <> '' then
                 begin
@@ -750,6 +753,7 @@ begin
 
                 HTTP.setRequestHeader('x-lh-version', APIVersion);
                 http.setRequestHeader('Accept-Encoding','gzip,deflate');
+                http.setRequestHeader('User-Agent','DELPHI POPBiLL SDK');
 
                 if UserID <> '' then
                 begin
